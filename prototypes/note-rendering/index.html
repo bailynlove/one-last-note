@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PROTOTYPE — Note rendering</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="prototype-warning">THROWAWAY PROTOTYPE · no persistence · rendering behavior only</div>
+
+  <section id="variant-a" class="variant hidden">
+    <header class="focused-header">
+      <div><span class="eyebrow">KNOWLEDGE BASE / RESEARCH</span><h1>Designing resilient annotation systems</h1></div>
+      <button class="secondary" data-action="failure">Simulate failure</button>
+    </header>
+    <nav class="format-tabs" data-formats></nav>
+    <div class="revision-pill" data-revisions></div>
+    <main class="focused-reader" data-render="a"></main>
+    <aside class="contract-drawer" data-contract></aside>
+  </section>
+
+  <section id="variant-b" class="variant hidden workspace">
+    <aside class="workspace-left">
+      <div class="brand">ONE LAST NOTE <span>prototype</span></div>
+      <h2>Reader</h2>
+      <nav data-formats></nav>
+      <h3>Revisions</h3>
+      <div data-revisions></div>
+      <button class="secondary" data-action="failure">Simulate failure</button>
+    </aside>
+    <main class="workspace-center">
+      <div class="breadcrumb">RESEARCH / NOTES / <strong>DESIGNING RESILIENT ANNOTATION SYSTEMS</strong></div>
+      <div data-render="b"></div>
+    </main>
+    <aside class="workspace-right" data-contract></aside>
+  </section>
+
+  <section id="variant-c" class="variant hidden comparison">
+    <header class="comparison-header">
+      <div><span class="eyebrow">SOURCE WORKBENCH</span><h1>Designing resilient annotation systems</h1></div>
+      <div class="format-tabs" data-formats></div>
+      <button class="secondary" data-action="failure">Simulate failure</button>
+    </header>
+    <main class="comparison-grid">
+      <section class="source-pane"><h2>Original source</h2><pre id="raw-source"></pre></section>
+      <section class="render-pane"><h2>Safe rendering</h2><div data-render="c"></div></section>
+    </main>
+    <footer class="revision-timeline"><strong>REVISION TIMELINE</strong><div data-revisions></div><div data-contract></div></footer>
+  </section>
+
+  <div id="selection-preview" class="selection-preview hidden"></div>
+  <div id="state-strip" aria-live="polite"></div>
+  <div class="prototype-switcher" aria-label="Prototype variant switcher">
+    <button id="previous-variant" aria-label="Previous variant">←</button>
+    <span id="variant-label"></span>
+    <button id="next-variant" aria-label="Next variant">→</button>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
