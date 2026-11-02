@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PROTOTYPE — Anchored Comments and Marks</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="prototype-warning">THROWAWAY PROTOTYPE · in-memory annotations · no persistence</div>
+  <header class="topbar">
+    <div><span class="eyebrow">RESEARCH / NOTE</span><h1>Designing resilient annotation systems</h1></div>
+    <div id="formats"></div>
+    <div id="revisions"></div>
+  </header>
+
+  <section id="variant-a" class="variant hidden focused">
+    <main class="document" data-document></main>
+    <aside><h2>Anchored discussion</h2><div class="annotation-list" data-list="a"></div></aside>
+  </section>
+
+  <section id="variant-b" class="variant hidden inline-mode">
+    <main data-document></main>
+    <div class="inline-annotations"><h2>Inline annotation stream</h2><div class="annotation-list" data-list="b"></div></div>
+  </section>
+
+  <section id="variant-c" class="variant hidden review-mode">
+    <aside><div class="review-title"><h2>Annotation review</h2><span id="review-count"></span></div><div class="annotation-list" data-list="c"></div></aside>
+    <main class="document-preview" data-document></main>
+  </section>
+
+  <div id="selection-tools" class="selection-tools hidden">
+    <span id="selected-text"></span>
+    <button data-create="highlight">Highlight</button>
+    <button data-create="key-point">Key point</button>
+    <button data-create="comment">Comment</button>
+  </div>
+
+  <div id="composer" class="composer hidden">
+    <h2>Add anchored Comment</h2><p id="composer-anchor"></p>
+    <textarea id="comment-text" placeholder="Comment text (required)"></textarea>
+    <div><button id="save-comment">Save Comment</button><button id="cancel-comment">Cancel</button></div>
+  </div>
+
+  <details id="state-panel" open><summary>Full prototype state</summary><pre id="state-json"></pre></details>
+  <div class="prototype-switcher"><button id="previous-variant">←</button><span id="variant-label"></span><button id="next-variant">→</button></div>
+  <script src="/app.js"></script>
+</body>
+</html>
