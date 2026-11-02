@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PROTOTYPE — Chrome Saver Integration</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="prototype-warning">THROWAWAY PROTOTYPE · simulated extension and API · no persistence</div>
+  <nav class="scenario-bar" aria-label="Prototype scenarios">
+    <strong>Scenario</strong>
+    <select id="scenario">
+      <option value="ready">Ready · full page</option>
+      <option value="selection">Ready · selected passage</option>
+      <option value="signed-out">Signed out</option>
+      <option value="duplicate">Possible duplicate</option>
+      <option value="offline">Offline failure</option>
+      <option value="permission">Lost Manager permission</option>
+      <option value="unsupported">Unsupported browser page</option>
+      <option value="recovered">Recovered in-progress save</option>
+    </select>
+    <span id="source-state">Source: https://example.com/resilient-notes</span>
+  </nav>
+
+  <main class="source-page">
+    <div class="source-masthead">FIELD NOTES <span>Research · Design · Systems</span></div>
+    <article>
+      <p class="source-kicker">DESIGN SYSTEMS · 8 MIN READ</p>
+      <h1>Designing notes that survive their sources</h1>
+      <p class="byline">By Mina Chen · Published October 18, 2026</p>
+      <p>A useful note keeps its source, its structure, and the reason it mattered. Saving a page should feel like placing a document into a trusted collection, not starting an import job.</p>
+      <blockquote id="selected-passage">A selected passage needs the same clean structure and provenance as a full page, without silently becoming a full-page capture.</blockquote>
+      <h2>Capture is a reviewable snapshot</h2>
+      <p>The content you preview is the content you save. Links, headings, lists, and images retain their meaning while active page code is left behind.</p>
+      <p>Use the scenario selector to exercise selection, duplicate, authentication, permission, and recovery behavior.</p>
+    </article>
+  </main>
+
+  <section id="popup" class="popup" aria-label="Chrome Saver popup prototype"></section>
+
+  <details id="state-panel" open><summary>Full prototype state</summary><pre id="state-json"></pre></details>
+  <div class="prototype-switcher"><button id="previous-variant" aria-label="Previous variant">←</button><span id="variant-label"></span><button id="next-variant" aria-label="Next variant">→</button></div>
+  <script src="/app.js"></script>
+</body>
+</html>
