@@ -1,0 +1,14 @@
+.git
+.github
+.next
+.scratch
+node_modules
+**/node_modules
+**/.next
+**/dist
+coverage
+.env
+.env.*
+!.env.example
+prototypes
+*.log

@@ -1,0 +1,41 @@
+{
+  "name": "one-last-note",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter \"./apps/*\" --parallel dev",
+    "build": "pnpm --filter @oln/web build",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "db:generate": "pnpm --filter @oln/infrastructure db:generate",
+    "db:migrate": "pnpm --filter @oln/infrastructure db:migrate",
+    "storage:init": "pnpm --filter @oln/infrastructure storage:init",
+    "services:up": "docker compose up -d --wait",
+    "services:down": "docker compose down",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.4",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7",
+    "@oln/application": "workspace:*",
+    "@oln/config": "workspace:*",
+    "@oln/domain": "workspace:*",
+    "@oln/infrastructure": "workspace:*",
+    "bullmq": "5.81.5",
+    "drizzle-orm": "0.44.7",
+    "fastify": "5.12.8",
+    "ioredis": "5.11.1"
+  }
+}

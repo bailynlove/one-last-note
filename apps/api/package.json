@@ -1,0 +1,19 @@
+{
+  "name": "@oln/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@oln/application": "workspace:*",
+    "@oln/config": "workspace:*",
+    "@oln/domain": "workspace:*",
+    "@oln/infrastructure": "workspace:*",
+    "fastify": "5.12.8",
+    "tsx": "4.23.15"
+  }
+}

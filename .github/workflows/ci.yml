@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: one_last_note
+          POSTGRES_PASSWORD: one_last_note
+          POSTGRES_DB: one_last_note
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U one_last_note -d one_last_note"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+
+      storage:
+        image: adobe/s3mock:5.2.3
+        env:
+          COM_ADOBE_TESTING_S3MOCK_STORE_REGION: us-east-1
+          COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /data
+        ports:
+          - 9090:9090
+
+    env:
+      NODE_ENV: test
+      LOG_LEVEL: info
+      DATABASE_URL: postgresql://one_last_note:one_last_note@localhost:5432/one_last_note
+      REDIS_URL: redis://localhost:6379
+      S3_ENDPOINT: http://localhost:9090
+      S3_REGION: us-east-1
+      S3_BUCKET: one-last-note
+      S3_ACCESS_KEY_ID: local
+      S3_SECRET_ACCESS_KEY: local
+      S3_FORCE_PATH_STYLE: "true"
+      API_BASE_URL: http://localhost:4000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm db:migrate
+      - run: pnpm storage:init
+      - run: pnpm test:integration
+      - run: pnpm build
+      - run: pnpm smoke
+      - run: docker build -t one-last-note:ci .

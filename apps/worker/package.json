@@ -1,0 +1,16 @@
+{
+  "name": "@oln/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@oln/config": "workspace:*",
+    "@oln/infrastructure": "workspace:*",
+    "bullmq": "5.81.5",
+    "tsx": "4.23.15"
+  }
+}

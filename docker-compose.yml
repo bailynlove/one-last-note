@@ -1,0 +1,45 @@
+name: one-last-note
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: one_last_note
+      POSTGRES_PASSWORD: one_last_note
+      POSTGRES_DB: one_last_note
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U one_last_note -d one_last_note"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  storage:
+    image: adobe/s3mock:5.2.3
+    # The named volume is root-owned; local-only mock, never deployed.
+    user: "0:0"
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_REGION: us-east-1
+      COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /data
+    ports:
+      - "9095:9090"
+    volumes:
+      - storage-data:/data
+
+volumes:
+  postgres-data:
+  storage-data:
