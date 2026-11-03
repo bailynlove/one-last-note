@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PROTOTYPE — Web App and Saver UI Design</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="prototype-warning">THROWAWAY PROTOTYPE · three product-wide UI directions · in-memory state · no persistence</div>
+  <div id="app"></div>
+  <details id="state-panel" open><summary>Full prototype state</summary><pre id="state-json"></pre></details>
+  <div class="prototype-switcher" aria-label="Prototype variant switcher">
+    <button id="previous-variant" aria-label="Previous variant">←</button>
+    <span id="variant-label"></span>
+    <button id="next-variant" aria-label="Next variant">→</button>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
