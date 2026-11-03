@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PROTOTYPE — Note Relations and Relation Page</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="prototype-warning">THROWAWAY PROTOTYPE · in-memory Relations · no persistence · no inferred semantic relations</div>
+  <header class="app-header">
+    <div><span class="eyebrow">RESEARCH LIBRARY / KNOWLEDGE BASE</span><h1>Notes and their Relations</h1></div>
+    <button class="relation-button" aria-current="page">Relation page <span id="relation-count"></span></button>
+    <div class="role-control"><label for="role">Role</label><select id="role"><option>Manager</option><option>Viewer</option></select></div>
+  </header>
+
+  <section class="toolbar" aria-label="Relation controls">
+    <input id="search" type="search" placeholder="Filter Note titles" aria-label="Filter Note titles">
+    <select id="type-filter" aria-label="Filter Relation type"><option value="all">All Relations</option><option value="manual">Manual only</option><option value="content">Content References</option><option value="related">Related to</option><option value="references">References</option><option value="supersedes">Supersedes</option></select>
+    <select id="revision" aria-label="Revision"><option value="current">Current Revisions</option><option value="previous">Previous Revisions</option></select>
+    <button id="empty-toggle">Show empty state</button>
+    <button id="add-relation">Add Relation</button>
+  </section>
+
+  <div id="notice" class="notice" role="status"></div>
+  <main id="relation-page"></main>
+
+  <dialog id="relation-dialog">
+    <form id="relation-form">
+      <h2>Add manual Relation</h2>
+      <p>Connect two Note associations in Research library. Self-links and exact duplicates are rejected; cycles are allowed.</p>
+      <label>Source Note<select id="relation-source" required></select></label>
+      <label>Relation<select id="relation-label"><option value="related">Related to · symmetric</option><option value="references">References · directed</option><option value="supersedes">Supersedes · directed</option></select></label>
+      <label>Target Note<select id="relation-target" required></select></label>
+      <div class="dialog-actions"><button type="button" id="cancel-relation">Cancel</button><button type="submit" class="primary">Create Relation</button></div>
+    </form>
+  </dialog>
+
+  <details id="state-panel" open><summary>Full prototype state</summary><pre id="state-json"></pre></details>
+  <div class="prototype-switcher"><button id="previous-variant" aria-label="Previous variant">←</button><span id="variant-label"></span><button id="next-variant" aria-label="Next variant">→</button></div>
+  <script src="/app.js"></script>
+</body>
+</html>
