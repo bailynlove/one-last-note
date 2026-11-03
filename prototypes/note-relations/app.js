@@ -85,8 +85,9 @@ function emptyMarkup() {
   return `<div class="empty"><h2>No Relations match this view</h2><p>Notes without Relations stay in the Knowledge Base. Clear filters, switch Revisions, or ${state.role === "Manager" ? "add a manual Relation" : "ask a Manager to add one"}.</p><button class="secondary" data-clear-filters="true">Clear filters and restore demo</button></div>`;
 }
 function variantA(relations) {
+  if (!relations.length) return `<div class="workspace"><section class="graph-card"><div class="card-header"><h2>No Relations yet · isolated Notes remain visible</h2>${viewTabs()}</div>${graphMarkup([])}</section>${inspectorMarkup([])}</div>`;
   const content = state.view === "graph" ? `<div class="workspace"><section class="graph-card"><div class="card-header"><h2>Relation graph</h2>${viewTabs()}</div>${graphMarkup(relations)}</section>${inspectorMarkup(relations)}</div>` : `<div class="workspace"><section class="graph-card"><div class="card-header"><h2>Relation list</h2>${viewTabs()}</div></section>${listMarkup(relations)}</div>`;
-  return relations.length ? content : emptyMarkup();
+  return content;
 }
 function clustersMarkup(relations) {
   const shown = visibleNotes(relations);
