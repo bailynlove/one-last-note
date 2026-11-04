@@ -9,3 +9,6 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - fastify@5.12.8
+
+overrides:
+  postcss: 8.5.32

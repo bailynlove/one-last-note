@@ -23,7 +23,9 @@
     "smoke": "node scripts/smoke.mjs",
     "test:saver": "xvfb-run -a node scripts/saver-e2e.mjs",
     "backup": "pnpm --filter @oln/infrastructure backup",
-    "restore": "pnpm --filter @oln/infrastructure restore"
+    "restore": "pnpm --filter @oln/infrastructure restore",
+    "load-test": "node scripts/load-test.mjs",
+    "a11y": "node scripts/a11y-check.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",
@@ -35,8 +37,9 @@
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "axe-core": "4.10.2",
     "bullmq": "5.81.5",
-    "drizzle-orm": "0.44.7",
+    "drizzle-orm": "0.45.4",
     "fastify": "5.12.8",
     "ioredis": "5.11.1",
     "playwright-core": "1.49.1",

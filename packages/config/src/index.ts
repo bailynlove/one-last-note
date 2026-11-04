@@ -46,6 +46,8 @@ export const serverEnvSchema = baseEnv
     WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
     RESEND_API_KEY: z.string().min(1).optional(),
     AUTH_PROXY_SECRET: z.string().min(32).optional(),
+    API_REQUEST_RATE_LIMIT: z.coerce.number().int().positive().default(600),
+    API_REQUEST_RATE_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
     AUTH_EMAIL_FROM: z.string().min(1).default('One Last Note <login@one-last-note.dev>'),
     GOOGLE_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),

@@ -194,6 +194,10 @@ const app = buildApi({
   metrics,
   metricsToken: config.METRICS_TOKEN,
   requestLimiter: (key, limit, windowSeconds) => rateLimit(key, limit, windowSeconds),
+  requestLimit: {
+    limit: config.API_REQUEST_RATE_LIMIT,
+    windowSeconds: config.API_REQUEST_RATE_WINDOW_SECONDS,
+  },
   authProxySecret: config.AUTH_PROXY_SECRET,
   trustProxy: config.TRUST_PROXY_HOPS,
   readiness: new CheckReadiness([

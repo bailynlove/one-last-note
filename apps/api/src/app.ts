@@ -64,6 +64,7 @@ export interface BuildApiOptions {
     limit: number,
     windowSeconds: number,
   ) => Promise<{ allowed: boolean; retryAfterSeconds: number }>;
+  requestLimit?: { limit: number; windowSeconds: number };
   authProxySecret?: string;
   trustProxy?: number;
   now?: () => Date;
@@ -86,6 +87,7 @@ export function buildApi({
   metrics,
   metricsToken,
   requestLimiter,
+  requestLimit,
   authProxySecret,
   trustProxy = 0,
   now = () => new Date(),
@@ -103,8 +105,8 @@ export function buildApi({
     if (requestLimiter) {
       const limit = await requestLimiter(
         `api:${request.ip}`,
-        API_REQUEST_RATE_LIMIT,
-        API_REQUEST_RATE_WINDOW_SECONDS,
+        requestLimit?.limit ?? API_REQUEST_RATE_LIMIT,
+        requestLimit?.windowSeconds ?? API_REQUEST_RATE_WINDOW_SECONDS,
       );
       if (!limit.allowed) {
         return reply
