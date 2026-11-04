@@ -1,7 +1,11 @@
+export { createMagicLinkEmailSender } from './auth/email';
+export { createGoogleProvider } from './auth/google';
+export { createAuthStore } from './auth/store';
+export { createAuthThrottle } from './auth/throttle';
 export { createDatabase, type Database } from './db/client';
 export { runMigrations } from './db/migrate';
 export { databaseProbe } from './db/probe';
-export { auditEvents } from './db/schema';
+export { auditEvents, authIdentities, magicLinkTokens, sessions, users } from './db/schema';
 export { type CreateLoggerOptions, createLogger } from './logging';
 export {
   HEARTBEAT_INTERVAL_MS,

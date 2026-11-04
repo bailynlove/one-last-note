@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { CheckReadiness, type ReadinessChecker } from '@oln/application';
+import { type AuthService, CheckReadiness, type ReadinessChecker } from '@oln/application';
 import { loadServerConfig, type ServerConfig } from '@oln/config';
 import {
   createDatabase,
@@ -70,9 +70,15 @@ export function testReadiness(stack: TestStack): ReadinessChecker {
   ]);
 }
 
-export function startTestApi(readiness: ReadinessChecker): FastifyInstance {
+export function startTestApi(
+  readiness: ReadinessChecker,
+  options: { auth?: AuthService; trustProxy?: number; authProxySecret?: string } = {},
+): FastifyInstance {
   return buildApi({
     logger: createLogger({ service: 'api-test', level: 'silent' }),
     readiness,
+    auth: options.auth,
+    authProxySecret: options.authProxySecret,
+    trustProxy: options.trustProxy,
   });
 }

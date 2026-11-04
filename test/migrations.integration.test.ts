@@ -35,7 +35,15 @@ describe('database migrations', () => {
     );
     const names = tables.rows.map((row) => row.table_name);
 
-    expect(names).toContain('audit_event');
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'audit_event',
+        'users',
+        'auth_identities',
+        'magic_link_tokens',
+        'sessions',
+      ]),
+    );
     expect(names).not.toContain('notes');
 
     const columns = await database.db.execute<{ column_name: string; data_type: string }>(

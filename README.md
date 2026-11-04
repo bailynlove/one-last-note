@@ -4,8 +4,8 @@ Application foundation for the one last note workspace: a TypeScript modular mon
 Next.js web app, a Fastify API, background workers, PostgreSQL, Redis/BullMQ, and S3-compatible
 object storage.
 
-The product surface is intentionally empty. This repository currently proves that the foundation
-boots, validates its configuration, reports health, and runs in CI.
+The foundation boots, validates its configuration, reports health, and runs in CI. User identity
+is the first product-facing slice: magic-link and Google sign-in share one persistent User.
 
 ## Requirements
 
@@ -54,8 +54,8 @@ backing services, and an initialized database and bucket (`pnpm db:migrate && pn
 
 ```
 apps/
-  api/             Fastify HTTP service: /health, /ready, problem+json errors
-  web/             Next.js App Router status page
+  api/             Fastify HTTP service: auth, /health, /ready, problem+json errors
+  web/             Next.js App Router status page and sign-in routes
   worker/          BullMQ worker with a heartbeat scheduler
 packages/
   domain/          Framework-free shared types and invariants
@@ -76,8 +76,34 @@ Required for the API and worker: `DATABASE_URL`, `REDIS_URL`, `S3_ENDPOINT`, `S3
 `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`. Optional: `PORT` (4000), `API_HOST` (0.0.0.0),
 `S3_REGION`, `S3_FORCE_PATH_STYLE`, `WORKER_CONCURRENCY`, `LOG_LEVEL`, `NODE_ENV`.
 
-The web app reads `API_BASE_URL` (default `http://localhost:4000`) and
-`API_REQUEST_TIMEOUT_MS` (default 3000).
+The web app reads `API_BASE_URL` (default `http://localhost:4000`),
+`API_REQUEST_TIMEOUT_MS` (default 3000), `WEB_APP_URL` (default `http://localhost:3000`), and
+`GOOGLE_CLIENT_ID`.
+
+Set `WEB_APP_URL` to the public web origin. Behind a proxy that sets `X-Forwarded-For`, set
+`TRUST_PROXY_HOPS` to the number of trusted hops so auth throttling sees the client IP instead of
+the proxy. When the web tier calls the API server-to-server, set the same `AUTH_PROXY_SECRET` on
+both services so the web client's IP is forwarded and verified.
+
+## Authentication
+
+Users sign in with a one-time email link or Google. Both paths resolve to the same User when the
+verified email matches. Sessions are opaque tokens stored as SHA-256 hashes in PostgreSQL; the web
+app keeps one in an HttpOnly `oln_session` cookie, and the API also accepts
+`Authorization: Bearer <token>` for clients such as the browser extension.
+
+Magic links expire after 15 minutes and work once. Sessions expire after 30 days and can be revoked
+by signing out. Authentication attempts are limited to 5 per 15 minutes per IP.
+
+Email delivery uses Resend when `RESEND_API_KEY` is set. Without it, the API logs the magic-link URL
+instead of sending mail, which is enough for local development. Production requires
+`RESEND_API_KEY` so links are never written to logs. Google sign-in activates when both
+`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set; register
+`${WEB_APP_URL}/auth/google/callback` as the authorized redirect URI.
+
+Auth endpoints: `POST /auth/magic-link`, `POST /auth/magic-link/consume`,
+`POST /auth/google/exchange`, `POST /auth/logout`, `GET /auth/me`, and
+`POST /auth/extension-token` (mints a bearer session for the current user).
 
 ## Health and readiness
 
@@ -105,4 +131,5 @@ by the deployment runbook.
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, migrations, storage initialization,
 integration tests, the web build, and the smoke test against service containers. A clean checkout
-must pass every step before merge.
+must pass every step before merge. Auth integration tests use the real PostgreSQL and Redis
+services; the CI workflow runs them against the same test database after migrations.

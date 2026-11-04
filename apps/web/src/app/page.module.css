@@ -122,3 +122,125 @@
   color: var(--muted);
   font-size: 0.8125rem;
 }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.topbar .eyebrow {
+  margin: 0;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.identityName {
+  max-width: 16rem;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.textButton {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.textButton:hover {
+  color: var(--text);
+}
+
+.authForm {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.input:focus {
+  outline: 2px solid var(--ok);
+  outline-offset: 1px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  border: 1px solid var(--text);
+  border-radius: 8px;
+  background: var(--text);
+  color: var(--background);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  text-decoration: none;
+}
+
+.button:hover {
+  opacity: 0.86;
+}
+
+.notice,
+.error {
+  margin: 0 0 1.25rem;
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  font-size: 0.9375rem;
+}
+
+.notice {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.error {
+  background: var(--degraded-soft);
+  color: var(--degraded);
+}
+
+.card + .card {
+  margin-top: 1rem;
+}
+
+@media (max-width: 520px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

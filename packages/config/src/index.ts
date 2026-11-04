@@ -26,26 +26,46 @@ const httpUrl = z
     'must be an HTTP(S) URL',
   );
 
-export const serverEnvSchema = baseEnv.extend({
-  PORT: z.coerce.number().int().positive().max(65_535).default(4000),
-  API_HOST: z.string().min(1).default('0.0.0.0'),
-  DATABASE_URL: postgresUrl,
-  REDIS_URL: redisUrl,
-  S3_ENDPOINT: httpUrl,
-  S3_REGION: z.string().min(1).default('auto'),
-  S3_BUCKET: z.string().min(1),
-  S3_ACCESS_KEY_ID: z.string().min(1),
-  S3_SECRET_ACCESS_KEY: z.string().min(1),
-  S3_FORCE_PATH_STYLE: z
-    .enum(['true', 'false'])
-    .default('true')
-    .transform((value) => value === 'true'),
-  WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
-});
+export const serverEnvSchema = baseEnv
+  .extend({
+    PORT: z.coerce.number().int().positive().max(65_535).default(4000),
+    API_HOST: z.string().min(1).default('0.0.0.0'),
+    WEB_APP_URL: httpUrl.default('http://localhost:3000'),
+    TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
+    DATABASE_URL: postgresUrl,
+    REDIS_URL: redisUrl,
+    S3_ENDPOINT: httpUrl,
+    S3_REGION: z.string().min(1).default('auto'),
+    S3_BUCKET: z.string().min(1),
+    S3_ACCESS_KEY_ID: z.string().min(1),
+    S3_SECRET_ACCESS_KEY: z.string().min(1),
+    S3_FORCE_PATH_STYLE: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((value) => value === 'true'),
+    WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
+    RESEND_API_KEY: z.string().min(1).optional(),
+    AUTH_PROXY_SECRET: z.string().min(32).optional(),
+    AUTH_EMAIL_FROM: z.string().min(1).default('One Last Note <login@one-last-note.dev>'),
+    GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+    GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  })
+  .superRefine((value, context) => {
+    if (Boolean(value.GOOGLE_CLIENT_ID) !== Boolean(value.GOOGLE_CLIENT_SECRET)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['GOOGLE_CLIENT_ID'],
+        message: 'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together',
+      });
+    }
+  });
 
 export const webEnvSchema = baseEnv.extend({
   API_BASE_URL: httpUrl.default('http://localhost:4000'),
   API_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(3000),
+  WEB_APP_URL: httpUrl.default('http://localhost:3000'),
+  AUTH_PROXY_SECRET: z.string().min(32).optional(),
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
 });
 
 export type ServerConfig = z.infer<typeof serverEnvSchema>;

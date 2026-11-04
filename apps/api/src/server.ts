@@ -1,8 +1,13 @@
-import { CheckReadiness } from '@oln/application';
+import { AuthService, CheckReadiness } from '@oln/application';
 import { loadServerConfig } from '@oln/config';
+import { GOOGLE_CALLBACK_PATH } from '@oln/domain';
 import {
+  createAuthStore,
+  createAuthThrottle,
   createDatabase,
+  createGoogleProvider,
   createLogger,
+  createMagicLinkEmailSender,
   createRedis,
   databaseProbe,
   objectStorageFromConfig,
@@ -21,6 +26,11 @@ try {
 }
 
 const logger = createLogger({ service: 'api', level: config.LOG_LEVEL });
+
+if (config.NODE_ENV !== 'development' && config.NODE_ENV !== 'test' && !config.RESEND_API_KEY) {
+  logger.fatal('RESEND_API_KEY is required in production so magic links are not logged');
+  process.exit(1);
+}
 const database = createDatabase({
   connectionString: config.DATABASE_URL,
   onError: (error) => logger.error({ err: error }, 'database pool error'),
@@ -29,9 +39,32 @@ const redis = createRedis(config.REDIS_URL, {
   onError: (error) => logger.warn({ err: error }, 'redis connection error'),
 });
 const storage = objectStorageFromConfig(config);
+const google =
+  config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET
+    ? createGoogleProvider({
+        clientId: config.GOOGLE_CLIENT_ID,
+        clientSecret: config.GOOGLE_CLIENT_SECRET,
+        redirectUri: new URL(GOOGLE_CALLBACK_PATH, config.WEB_APP_URL).toString(),
+      })
+    : undefined;
+const auth = new AuthService({
+  store: createAuthStore(database),
+  email: createMagicLinkEmailSender({
+    apiKey: config.RESEND_API_KEY,
+    from: config.AUTH_EMAIL_FROM,
+    logger,
+  }),
+  throttle: createAuthThrottle(redis),
+  google,
+  webAppUrl: config.WEB_APP_URL,
+  logger,
+});
 
 const app = buildApi({
   logger,
+  auth,
+  authProxySecret: config.AUTH_PROXY_SECRET,
+  trustProxy: config.TRUST_PROXY_HOPS,
   readiness: new CheckReadiness([
     databaseProbe(database),
     redisProbe(redis),
@@ -56,8 +89,14 @@ async function shutdown(signal: string): Promise<void> {
   forceExit.unref();
 
   try {
+    try {
+      await app.close();
+    } catch (error) {
+      logger.error({ err: error }, 'api server failed to close');
+      process.exitCode = 1;
+    }
+
     const results = await Promise.allSettled([
-      app.close(),
       database.close(),
       (async () => redis.disconnect())(),
       (async () => storage.destroy())(),

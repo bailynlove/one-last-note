@@ -19,6 +19,9 @@ describe('server configuration', () => {
     expect(config.LOG_LEVEL).toBe('info');
     expect(config.S3_FORCE_PATH_STYLE).toBe(true);
     expect(config.WORKER_CONCURRENCY).toBe(5);
+    expect(config.WEB_APP_URL).toBe('http://localhost:3000');
+    expect(config.TRUST_PROXY_HOPS).toBe(0);
+    expect(config.AUTH_EMAIL_FROM).toBe('One Last Note <login@one-last-note.dev>');
   });
 
   it('coerces and parses explicit values', () => {
@@ -39,6 +42,23 @@ describe('server configuration', () => {
   it('rejects missing required values with a readable message', () => {
     expect(() => parseServerConfig({})).toThrow(ConfigError);
     expect(() => parseServerConfig({})).toThrow(/DATABASE_URL/);
+  });
+
+  it('rejects half-configured Google sign-in', () => {
+    expect(() => parseServerConfig({ ...required, GOOGLE_CLIENT_ID: 'client' })).toThrow(
+      /GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET/,
+    );
+  });
+
+  it('accepts a complete Google sign-in configuration', () => {
+    const config = parseServerConfig({
+      ...required,
+      GOOGLE_CLIENT_ID: 'client',
+      GOOGLE_CLIENT_SECRET: 'secret',
+    });
+
+    expect(config.GOOGLE_CLIENT_ID).toBe('client');
+    expect(config.GOOGLE_CLIENT_SECRET).toBe('secret');
   });
 
   it('rejects invalid ports', () => {

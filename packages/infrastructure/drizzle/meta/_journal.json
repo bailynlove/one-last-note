@@ -8,6 +8,13 @@
       "when": 1793699104023,
       "tag": "0000_familiar_magdalene",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793763874297,
+      "tag": "0001_gifted_devos",
+      "breakpoints": true
     }
   ]
 }

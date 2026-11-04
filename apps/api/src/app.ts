@@ -1,19 +1,26 @@
 import { randomUUID } from 'node:crypto';
 import { STATUS_CODES } from 'node:http';
-import type { ReadinessChecker } from '@oln/application';
-import { AppError } from '@oln/application';
+import type { AuthService, ReadinessChecker } from '@oln/application';
+import { AppError, AuthThrottleError } from '@oln/application';
 import type { ReadinessReport, ServiceHealth } from '@oln/domain';
 import Fastify, { type FastifyBaseLogger, type FastifyError, type FastifyInstance } from 'fastify';
+import { registerAuthRoutes } from './auth';
 
 export interface BuildApiOptions {
   logger: FastifyBaseLogger;
   readiness: ReadinessChecker;
+  auth?: AuthService;
+  authProxySecret?: string;
+  trustProxy?: number;
   now?: () => Date;
 }
 
 export function buildApi({
   logger,
   readiness,
+  auth,
+  authProxySecret,
+  trustProxy = 0,
   now = () => new Date(),
 }: BuildApiOptions): FastifyInstance {
   const startedAt = Date.now();
@@ -21,6 +28,7 @@ export function buildApi({
     loggerInstance: logger,
     requestIdHeader: 'x-request-id',
     genReqId: () => randomUUID(),
+    trustProxy: trustProxy > 0 ? (_address, hop) => hop < trustProxy : false,
   });
 
   app.addHook('onSend', async (_request, reply) => {
@@ -65,6 +73,13 @@ export function buildApi({
         ? error.title
         : (STATUS_CODES[status] ?? (clientSafe ? 'Request Error' : 'Internal Server Error'));
 
+    if (error instanceof AuthThrottleError) {
+      reply.header('retry-after', String(error.retryAfterSeconds));
+    }
+    if (status === 401) {
+      reply.header('www-authenticate', 'Bearer');
+    }
+
     if (clientSafe) {
       request.log.warn({ err: error }, 'request rejected');
     } else {
@@ -82,6 +97,10 @@ export function buildApi({
         instance: request.url,
       });
   });
+
+  if (auth) {
+    registerAuthRoutes(app, auth, authProxySecret);
+  }
 
   return app;
 }

@@ -1,21 +1,41 @@
 import { fetchReadiness } from '../lib/api';
+import { fetchSessionUser } from '../lib/auth';
+import { readSessionToken } from '../lib/session';
 import styles from './page.module.css';
 
 export const dynamic = 'force-dynamic';
 
 export default async function StatusPage() {
-  const result = await fetchReadiness();
+  const [result, sessionToken] = await Promise.all([fetchReadiness(), readSessionToken()]);
+  const user = sessionToken ? await fetchSessionUser(sessionToken) : null;
   const report = result.reachable ? result.report : null;
   const healthy = report?.status === 'ok';
   const checks = report ? Object.entries(report.checks) : [];
 
   return (
     <main className={styles.page}>
-      <p className={styles.eyebrow}>one last note</p>
-      <h1 className={styles.title}>Foundation status</h1>
+      <div className={styles.topbar}>
+        <p className={styles.eyebrow}>one last note</p>
+        {user ? (
+          <div className={styles.identity}>
+            <span className={styles.identityName}>{user.displayName}</span>
+            <form action="/logout" method="post">
+              <button className={styles.textButton} type="submit">
+                Sign out
+              </button>
+            </form>
+          </div>
+        ) : (
+          <a className={styles.textButton} href="/login">
+            Sign in
+          </a>
+        )}
+      </div>
+      <h1 className={styles.title}>{user ? `Hello, ${user.displayName}` : 'Foundation status'}</h1>
       <p className={styles.lede}>
-        Live view of the API and the services it needs. This page is intentionally thin — it only
-        proves the foundation is wired together.
+        {user
+          ? 'Your account is connected. The foundation view below shows the services behind it.'
+          : 'Sign in to make this your account. The foundation view below shows the services behind it.'}
       </p>
 
       <section className={styles.card} aria-labelledby="readiness-heading">
