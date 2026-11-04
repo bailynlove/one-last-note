@@ -55,7 +55,7 @@ backing services, and an initialized database and bucket (`pnpm db:migrate && pn
 ```
 apps/
   api/             Fastify HTTP service: auth, /health, /ready, problem+json errors
-  web/             Next.js App Router status page and sign-in routes
+  web/             Next.js App Router workspace, sign-in, and Knowledge Base routes
   worker/          BullMQ worker with a heartbeat scheduler
 packages/
   domain/          Framework-free shared types and invariants
@@ -104,6 +104,22 @@ instead of sending mail, which is enough for local development. Production requi
 Auth endpoints: `POST /auth/magic-link`, `POST /auth/magic-link/consume`,
 `POST /auth/google/exchange`, `POST /auth/logout`, `GET /auth/me`, and
 `POST /auth/extension-token` (mints a bearer session for the current user).
+
+## Knowledge Bases and membership
+
+Any signed-in User can create a Knowledge Base and becomes its sole Owner. Members are Owner,
+Manager, or Viewer. Managers can invite and remove Viewers; only the Owner can change elevated
+roles, create Join Links, or start an ownership transfer. Transfers expire after 7 days and only
+complete when the target Manager accepts, at which point the previous Owner becomes a Manager.
+
+Email invitations expire after 7 days and must be accepted by the signed-in User with the invited
+verified email. Join Links are multi-use, Owner-created, valid for 1-30 days, and grant Manager or
+Viewer access until revoked.
+
+The web workspace lives at `/`, `/knowledge-bases/new`, `/knowledge-bases/[id]`,
+`/invitations/[token]`, `/join/[token]`, and `/ownership-transfers/[id]`. API routes under
+`/knowledge-bases`, `/invitations`, `/join-links`, and `/ownership-transfers` back the same
+commands.
 
 ## Health and readiness
 

@@ -1,4 +1,4 @@
-import { AuthService, CheckReadiness } from '@oln/application';
+import { AuthService, CheckReadiness, KnowledgeBaseService } from '@oln/application';
 import { loadServerConfig } from '@oln/config';
 import { GOOGLE_CALLBACK_PATH } from '@oln/domain';
 import {
@@ -6,6 +6,8 @@ import {
   createAuthThrottle,
   createDatabase,
   createGoogleProvider,
+  createKnowledgeBaseEmailSender,
+  createKnowledgeBaseStore,
   createLogger,
   createMagicLinkEmailSender,
   createRedis,
@@ -60,9 +62,21 @@ const auth = new AuthService({
   logger,
 });
 
+const knowledgeBases = new KnowledgeBaseService({
+  store: createKnowledgeBaseStore(database),
+  email: createKnowledgeBaseEmailSender({
+    apiKey: config.RESEND_API_KEY,
+    from: config.AUTH_EMAIL_FROM,
+    logger,
+  }),
+  webAppUrl: config.WEB_APP_URL,
+  logger,
+});
+
 const app = buildApi({
   logger,
   auth,
+  knowledgeBases,
   authProxySecret: config.AUTH_PROXY_SECRET,
   trustProxy: config.TRUST_PROXY_HOPS,
   readiness: new CheckReadiness([

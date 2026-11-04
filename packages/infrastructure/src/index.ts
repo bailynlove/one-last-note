@@ -6,6 +6,7 @@ export { createDatabase, type Database } from './db/client';
 export { runMigrations } from './db/migrate';
 export { databaseProbe } from './db/probe';
 export { auditEvents, authIdentities, magicLinkTokens, sessions, users } from './db/schema';
+export { createKnowledgeBaseEmailSender, createKnowledgeBaseStore } from './knowledge-bases';
 export { type CreateLoggerOptions, createLogger } from './logging';
 export {
   HEARTBEAT_INTERVAL_MS,

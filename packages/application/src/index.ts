@@ -9,6 +9,7 @@ export {
   type AuthStore,
   type AuthThrottle,
   AuthThrottleError,
+  createToken,
   type EmailSender,
   type GoogleIdentity,
   type GoogleProvider,
@@ -18,6 +19,17 @@ export {
   type SessionContext,
 } from './auth';
 export { AppError, type AppErrorOptions } from './errors';
+export {
+  type CreatedJoinLink,
+  type KnowledgeBaseAccess,
+  type KnowledgeBaseEmailSender,
+  KnowledgeBaseService,
+  type KnowledgeBaseServiceOptions,
+  type KnowledgeBaseStore,
+  type StoredInvitation,
+  type StoredJoinLink,
+  type StoredOwnershipTransfer,
+} from './knowledge-bases';
 export {
   CheckReadiness,
   type Probe,

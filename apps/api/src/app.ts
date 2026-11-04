@@ -1,15 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import { STATUS_CODES } from 'node:http';
-import type { AuthService, ReadinessChecker } from '@oln/application';
+import type { AuthService, KnowledgeBaseService, ReadinessChecker } from '@oln/application';
 import { AppError, AuthThrottleError } from '@oln/application';
 import type { ReadinessReport, ServiceHealth } from '@oln/domain';
 import Fastify, { type FastifyBaseLogger, type FastifyError, type FastifyInstance } from 'fastify';
 import { registerAuthRoutes } from './auth';
+import { registerKnowledgeBaseRoutes } from './knowledge-bases';
 
 export interface BuildApiOptions {
   logger: FastifyBaseLogger;
   readiness: ReadinessChecker;
   auth?: AuthService;
+  knowledgeBases?: KnowledgeBaseService;
   authProxySecret?: string;
   trustProxy?: number;
   now?: () => Date;
@@ -19,6 +21,7 @@ export function buildApi({
   logger,
   readiness,
   auth,
+  knowledgeBases,
   authProxySecret,
   trustProxy = 0,
   now = () => new Date(),
@@ -100,6 +103,9 @@ export function buildApi({
 
   if (auth) {
     registerAuthRoutes(app, auth, authProxySecret);
+  }
+  if (auth && knowledgeBases) {
+    registerKnowledgeBaseRoutes(app, auth, knowledgeBases);
   }
 
   return app;

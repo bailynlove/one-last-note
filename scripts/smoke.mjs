@@ -118,7 +118,7 @@ try {
   }
 
   const page = await waitForHttp('http://127.0.0.1:3000/', [200]);
-  if (!(await page.text()).includes('Foundation status')) {
+  if (!(await page.text()).includes('A quiet place')) {
     throw new Error('Web status page did not render');
   }
 

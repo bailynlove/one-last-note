@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { AuthService, hashToken } from '@oln/application';
 import { createAuthStore, createAuthThrottle } from '@oln/infrastructure';
 import { sql } from 'drizzle-orm';
@@ -155,14 +155,15 @@ describe('authentication with real storage', () => {
 
   it('rejects an expired magic link against the real store', async () => {
     const store = createAuthStore(stack.database);
+    const token = `expired-${randomUUID()}`;
     await store.createMagicLink({
       email: `${uniqueName('expired')}@example.com`,
-      tokenHash: hashToken('expired-token'),
+      tokenHash: hashToken(token),
       expiresAt: new Date(Date.now() - 1_000),
       now: new Date(),
     });
 
-    const response = await consume('expired-token', testIp(7));
+    const response = await consume(token, testIp(7));
     expect(response.statusCode).toBe(400);
   });
 
