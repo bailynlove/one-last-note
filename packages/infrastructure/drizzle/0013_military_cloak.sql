@@ -1,0 +1,1 @@
+ALTER TABLE "annotations" ADD COLUMN "agent_name" text;

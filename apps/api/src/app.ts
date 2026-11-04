@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { STATUS_CODES } from 'node:http';
 import multipart from '@fastify/multipart';
 import type {
+  AgentControlService,
+  AgentTokenService,
   AnnotationService,
   AppExtensionService,
   AuthService,
@@ -20,7 +22,9 @@ import {
   UploadValidationError,
 } from '@oln/application';
 import { MAX_ORIGINAL_BYTES, type ReadinessReport, type ServiceHealth } from '@oln/domain';
+import type { AgentRateLimiter } from '@oln/infrastructure';
 import Fastify, { type FastifyBaseLogger, type FastifyError, type FastifyInstance } from 'fastify';
+import { registerAgentTokenRoutes } from './agent-tokens';
 import { registerAnnotationRoutes } from './annotations';
 import { registerAppExtensionRoutes } from './app-extensions';
 import { registerAuthRoutes } from './auth';
@@ -28,6 +32,7 @@ import { registerCaptureRoutes } from './captures';
 import { registerExtensionAuthRoutes } from './extension-auth';
 import { registerKnowledgeBaseRoutes } from './knowledge-bases';
 import { registerLifecycleRoutes } from './lifecycle';
+import { registerMcpRoute } from './mcp';
 import { registerNoteRoutes } from './notes';
 import { registerRelationRoutes } from './relations';
 
@@ -43,6 +48,8 @@ export interface BuildApiOptions {
   lifecycle?: LifecycleService;
   captures?: CaptureService;
   extensionAuth?: ExtensionAuthService;
+  agentTokens?: AgentTokenService;
+  mcp?: { control: AgentControlService; limiter: AgentRateLimiter };
   authProxySecret?: string;
   trustProxy?: number;
   now?: () => Date;
@@ -60,6 +67,8 @@ export function buildApi({
   lifecycle,
   captures,
   extensionAuth,
+  agentTokens,
+  mcp,
   authProxySecret,
   trustProxy = 0,
   now = () => new Date(),
@@ -183,6 +192,12 @@ export function buildApi({
   }
   if (auth && extensionAuth) {
     registerExtensionAuthRoutes(app, auth, extensionAuth, authProxySecret);
+  }
+  if (auth && agentTokens) {
+    registerAgentTokenRoutes(app, auth, agentTokens);
+  }
+  if (mcp) {
+    registerMcpRoute(app, { tokens: agentTokens as AgentTokenService, ...mcp });
   }
 
   return app;

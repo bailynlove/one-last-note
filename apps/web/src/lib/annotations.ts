@@ -38,6 +38,7 @@ const fields = {
   markType: z.string().nullable(),
   payload: z.record(z.string(), z.unknown()).nullable(),
   body: z.string().nullable(),
+  agentName: z.string().nullable().default(null),
   anchor: z.union([textAnchorSchema, pdfAnchorSchema]),
   needsReview: z.boolean(),
   deleted: z.boolean(),

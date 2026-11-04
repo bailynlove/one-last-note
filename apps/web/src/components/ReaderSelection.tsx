@@ -185,6 +185,9 @@ function AnnotationCard({
             <img className={styles.avatar} src={annotation.author.avatarUrl} alt="" />
           ) : null}
           {annotation.author.displayName}
+          {annotation.agentName ? (
+            <span className={styles.muted}> via {annotation.agentName}</span>
+          ) : null}
         </span>
         <span className={styles.annotationMeta}>
           Rev {revisionNumber ?? '—'} · {annotation.createdAt.slice(0, 10)}

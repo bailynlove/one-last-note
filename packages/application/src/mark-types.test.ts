@@ -60,6 +60,7 @@ function store(created: Annotation[]): AnnotationStore {
         markType: input.markType,
         payload: input.payload,
         body: input.body,
+        agentName: input.agentName,
         anchor: input.anchor,
         needsReview: false,
         deleted: false,

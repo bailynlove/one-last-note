@@ -1,3 +1,12 @@
+export { AgentControlService, type AgentControlServiceOptions } from './agent-control';
+export {
+  type AgentTokenLogger,
+  type AgentTokenRecord,
+  AgentTokenService,
+  type AgentTokenServiceOptions,
+  type AgentTokenStore,
+  type AuthenticatedAgent,
+} from './agent-tokens';
 export {
   type AnnotationListOptions,
   AnnotationService,

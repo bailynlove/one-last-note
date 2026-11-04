@@ -238,6 +238,26 @@ PATCH  /knowledge-bases/:id/extensions/:installationId
 DELETE /knowledge-bases/:id/extensions/:installationId
 ```
 
+## Agent access and MCP
+
+Users create scoped Agent tokens at `/settings/agent-tokens`. A token acts as its User with
+`read` and/or `write` scopes; it never exposes the web session. Tokens are shown once, hashed at
+rest, expire after 90 days by default, and can be revoked immediately.
+
+```text
+GET    /agent-tokens
+POST   /agent-tokens        { "name": "Research agent", "scopes": ["read", "write"] }
+DELETE /agent-tokens/:id
+POST   /mcp                 Streamable HTTP MCP (Authorization: Bearer oln_agent_...)
+```
+
+Point an MCP client at `http://localhost:4000/mcp` with the token as a bearer token. The server
+exposes Knowledge Base, Note, Comment, Mark, Relation, Trash, and capture-adjacent read/write
+tools. It applies the delegating User's roles, the token's scopes, and a per-token request/write
+rate limit. Every write records an `agent.<action>` audit event and annotations display the Agent
+name, not a fake User account. App Extension Mark descriptors are available through
+`list_mark_types` and remain isolated to each Knowledge Base.
+
 ## Health and readiness
 
 - `GET /health` on the API and web app is a liveness check.

@@ -1,3 +1,9 @@
+export {
+  type AgentRateLimiter,
+  createAgentRateLimiter,
+  createAgentTokenStore,
+  type RateLimitResult,
+} from './agent-tokens';
 export { createAnnotationStore } from './annotations';
 export * from './app-extensions';
 export { createMagicLinkEmailSender } from './auth/email';
@@ -15,7 +21,14 @@ export {
 export { createDatabase, type Database } from './db/client';
 export { runMigrations } from './db/migrate';
 export { databaseProbe } from './db/probe';
-export { auditEvents, authIdentities, magicLinkTokens, sessions, users } from './db/schema';
+export {
+  agentTokens,
+  auditEvents,
+  authIdentities,
+  magicLinkTokens,
+  sessions,
+  users,
+} from './db/schema';
 export { createExtensionAuthStore } from './extension-auth';
 export { createKnowledgeBaseEmailSender, createKnowledgeBaseStore } from './knowledge-bases';
 export { createLifecycleStore } from './lifecycle';

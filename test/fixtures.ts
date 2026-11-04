@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
+  type AgentControlService,
+  type AgentTokenService,
   type AnnotationService,
   type AppExtensionService,
   type AuthService,
@@ -14,6 +16,7 @@ import {
 } from '@oln/application';
 import { loadServerConfig, type ServerConfig } from '@oln/config';
 import {
+  type AgentRateLimiter,
   createDatabase,
   createLogger,
   createRedis,
@@ -94,6 +97,8 @@ export function startTestApi(
     extensionAuth?: ExtensionAuthService;
     relations?: RelationService;
     appExtensions?: AppExtensionService;
+    agentTokens?: AgentTokenService;
+    mcp?: { control: AgentControlService; limiter: AgentRateLimiter };
     trustProxy?: number;
     authProxySecret?: string;
   } = {},
@@ -110,6 +115,8 @@ export function startTestApi(
     extensionAuth: options.extensionAuth,
     relations: options.relations,
     appExtensions: options.appExtensions,
+    agentTokens: options.agentTokens,
+    mcp: options.mcp,
     authProxySecret: options.authProxySecret,
     trustProxy: options.trustProxy,
   });

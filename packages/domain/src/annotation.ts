@@ -45,6 +45,7 @@ export interface Annotation {
   markType: string | null;
   payload: Record<string, unknown> | null;
   body: string | null;
+  agentName: string | null;
   anchor: AnnotationAnchor;
   needsReview: boolean;
   deleted: boolean;

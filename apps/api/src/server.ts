@@ -1,4 +1,6 @@
 import {
+  AgentControlService,
+  AgentTokenService,
   AnnotationService,
   AppExtensionService,
   AuthService,
@@ -14,6 +16,8 @@ import { loadServerConfig } from '@oln/config';
 import { GOOGLE_CALLBACK_PATH } from '@oln/domain';
 import {
   captureQueueAdapter,
+  createAgentRateLimiter,
+  createAgentTokenStore,
   createAnnotationStore,
   createAppExtensionStore,
   createAuthStore,
@@ -150,6 +154,20 @@ const appExtensions = new AppExtensionService({
   store: createAppExtensionStore(database),
 });
 
+const annotations = new AnnotationService({
+  store: createAnnotationStore(database),
+  noteText: (userId, noteId, revisionId) => notes.revisionText(userId, noteId, revisionId),
+  markTypes: appExtensions,
+});
+const agentTokens = new AgentTokenService({
+  store: createAgentTokenStore(database),
+  logger,
+});
+const agentControl = new AgentControlService(
+  { knowledgeBases, notes, annotations, relations, lifecycle },
+  (agent, entry) =>
+    agentTokens.audit(agent, entry.tool, entry.action, entry.subjectType, entry.subjectId),
+);
 const app = buildApi({
   logger,
   auth,
@@ -160,11 +178,9 @@ const app = buildApi({
   extensionAuth,
   relations,
   appExtensions,
-  annotations: new AnnotationService({
-    store: createAnnotationStore(database),
-    noteText: (userId, noteId, revisionId) => notes.revisionText(userId, noteId, revisionId),
-    markTypes: appExtensions,
-  }),
+  annotations,
+  agentTokens,
+  mcp: { control: agentControl, limiter: createAgentRateLimiter(redis) },
   authProxySecret: config.AUTH_PROXY_SECRET,
   trustProxy: config.TRUST_PROXY_HOPS,
   readiness: new CheckReadiness([

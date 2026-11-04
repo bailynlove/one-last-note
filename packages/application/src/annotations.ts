@@ -37,6 +37,7 @@ export interface AnnotationStore {
     markType: string | null;
     payload: Record<string, unknown> | null;
     body: string | null;
+    agentName: string | null;
     anchor: AnnotationAnchor;
     now: Date;
   }): Promise<Annotation>;
@@ -73,6 +74,7 @@ export interface CreateAnnotationInput {
   body?: string | null;
   markType?: string | null;
   payload?: unknown;
+  agentName?: string | null;
   anchor: unknown;
 }
 
@@ -314,6 +316,7 @@ export class AnnotationService {
         markType: null,
         payload: null,
         body: readBody(input.body),
+        agentName: input.agentName ?? null,
         anchor,
         now: this.now(),
       });
@@ -338,6 +341,7 @@ export class AnnotationService {
         markType,
         payload,
         body: null,
+        agentName: input.agentName ?? null,
         anchor,
         now: this.now(),
       });
@@ -367,6 +371,7 @@ export class AnnotationService {
       markType: null,
       payload: null,
       body: readBody(body),
+      agentName: null,
       anchor: parent.anchor,
       now: this.now(),
     });

@@ -1,3 +1,4 @@
+export * from './agent-token';
 export * from './annotation';
 export * from './app-extension';
 export * from './capture';

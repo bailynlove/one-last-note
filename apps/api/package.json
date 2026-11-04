@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@fastify/multipart": "^10.1.7",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@oln/application": "workspace:*",
     "@oln/config": "workspace:*",
     "@oln/domain": "workspace:*",

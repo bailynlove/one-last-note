@@ -90,6 +90,11 @@ export default async function WorkspacePage() {
             Choose a Knowledge Base to work in, or start a new one. Membership decides what you can
             change.
           </p>
+          <p>
+            <a className={styles.secondaryButton} href="/settings/agent-tokens">
+              Agent access
+            </a>
+          </p>
 
           {!knowledgeBases.ok ? (
             <p className={`${styles.notice} ${styles.error}`}>{knowledgeBases.detail}</p>

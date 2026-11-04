@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@oln/application": "workspace:*",
     "@oln/config": "workspace:*",
     "@oln/domain": "workspace:*",

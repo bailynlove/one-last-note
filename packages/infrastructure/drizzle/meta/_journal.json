@@ -85,6 +85,20 @@
       "when": 1793799003549,
       "tag": "0011_tiny_odin",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793800514701,
+      "tag": "0012_far_karen_page",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793800698698,
+      "tag": "0013_military_cloak",
+      "breakpoints": true
     }
   ]
 }

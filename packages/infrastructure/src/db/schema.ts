@@ -1,4 +1,4 @@
-import type { AnnotationAnchor, AppExtensionManifest } from '@oln/domain';
+import type { AgentTokenScope, AnnotationAnchor, AppExtensionManifest } from '@oln/domain';
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
@@ -347,6 +347,7 @@ export const annotations = pgTable(
     markType: text('mark_type'),
     payload: jsonb('payload').$type<Record<string, unknown> | null>(),
     body: text('body'),
+    agentName: text('agent_name'),
     anchor: jsonb('anchor').$type<AnnotationAnchor>().notNull(),
     needsReview: boolean('needs_review').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -432,6 +433,25 @@ export const appExtensions = pgTable(
       .where(sql`${table.enabled}`),
     index('app_extensions_knowledge_base_idx').on(table.knowledgeBaseId),
   ],
+);
+
+export const agentTokens = pgTable(
+  'agent_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    tokenHash: text('token_hash').notNull().unique(),
+    prefix: text('prefix').notNull(),
+    scopes: text('scopes').array().$type<AgentTokenScope[]>().notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('agent_tokens_user_idx').on(table.userId)],
 );
 
 export const auditEvents = pgTable(

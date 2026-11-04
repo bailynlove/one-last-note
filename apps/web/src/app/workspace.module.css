@@ -908,3 +908,31 @@
   margin: 0.75rem 0 0.4rem;
   font-size: 0.95rem;
 }
+
+.checkboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.checkboxRow input {
+  margin-top: 0.2rem;
+}
+
+.tokenReveal {
+  border: 1px solid #d8c9a8;
+  border-radius: 12px;
+  padding: 0.8rem;
+  background: #fbf6e8;
+}
+
+.tokenReveal code {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+}
+
+.formError {
+  color: #9f2d20;
+}
