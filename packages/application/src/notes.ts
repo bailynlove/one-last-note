@@ -8,7 +8,7 @@ import {
   type NoteSource,
   type NoteSummary,
 } from '@oln/domain';
-import { AppError } from './errors';
+import { AppError, RateLimitError } from './errors';
 import { renderRevision } from './renderers';
 
 const TEXT_MEDIA_TYPES = new Set(['text/html', 'text/markdown', 'text/plain']);
@@ -160,6 +160,7 @@ export interface NoteServiceOptions {
   quotaBytes?: number;
   processInline?: boolean;
   logger?: NoteLogger;
+  uploadLimiter?: (userId: string) => Promise<{ allowed: boolean; retryAfterSeconds: number }>;
 }
 
 export interface CapturedNoteInput {
@@ -216,6 +217,10 @@ export class NoteService {
         status: 400,
         title: 'Upload rejected',
       });
+    }
+    const limit = await this.options.uploadLimiter?.(userId);
+    if (limit && !limit.allowed) {
+      throw new RateLimitError('Too many uploads. Try again later.', limit.retryAfterSeconds);
     }
     for (const knowledgeBaseId of uniqueKnowledgeBaseIds) {
       await this.requireManager(knowledgeBaseId, userId);

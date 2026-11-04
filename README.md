@@ -258,6 +258,12 @@ rate limit. Every write records an `agent.<action>` audit event and annotations 
 name, not a fake User account. App Extension Mark descriptors are available through
 `list_mark_types` and remain isolated to each Knowledge Base.
 
+## Operations
+
+Limits, retention, metrics, alert thresholds, and the incident checklist live in
+[`docs/operations/runbook.md`](docs/operations/runbook.md). Prometheus rules are in
+`ops/prometheus/alerts.yml`; the Grafana dashboard is `ops/grafana/dashboard.json`.
+
 ## Health and readiness
 
 - `GET /health` on the API and web app is a liveness check.

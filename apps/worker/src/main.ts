@@ -1,4 +1,5 @@
-import { CaptureService, LifecycleService, NoteService } from '@oln/application';
+import { createServer } from 'node:http';
+import { CaptureService, LifecycleService, NoteService, RetentionService } from '@oln/application';
 import { loadServerConfig } from '@oln/config';
 import {
   CAPTURE_QUEUE,
@@ -10,9 +11,11 @@ import {
   createDevelopmentScanner,
   createLifecycleStore,
   createLogger,
+  createMetrics,
   createNoteRevisionQueue,
   createNoteStore,
   createRedis,
+  createRetentionStore,
   createSafeFetcher,
   NOTE_REVISION_QUEUE,
   objectStorageFromConfig,
@@ -63,6 +66,16 @@ const queue = new Queue(SYSTEM_QUEUE, { connection: queueConnection });
 await scheduleHeartbeat(queue);
 const revisionQueue = createNoteRevisionQueue(config.REDIS_URL, onError);
 const lifecycle = new LifecycleService({ store: createLifecycleStore(database) });
+const retention = new RetentionService({
+  store: createRetentionStore(database),
+  storage: {
+    deleteMany: async (keys) => {
+      for (const key of keys) await storage.deleteObject(key);
+    },
+  },
+  logger,
+});
+const metrics = createMetrics();
 const scanner = config.CLAMAV_HOST
   ? createClamAvScanner({ host: config.CLAMAV_HOST, port: config.CLAMAV_PORT })
   : createDevelopmentScanner();
@@ -110,13 +123,21 @@ const noteWorker = new Worker(
   { connection: noteWorkerConnection, concurrency: config.WORKER_CONCURRENCY },
 );
 
+worker.on('completed', () =>
+  metrics.inc('worker_jobs_total', { queue: SYSTEM_QUEUE, status: 'completed' }),
+);
 worker.on('failed', (job, error) => {
+  metrics.inc('worker_jobs_total', { queue: SYSTEM_QUEUE, status: 'failed' });
   logger.error({ err: error, jobId: job?.id }, 'job failed');
 });
 worker.on('error', (error) => {
   logger.error({ err: error }, 'worker error');
 });
+noteWorker.on('completed', () =>
+  metrics.inc('worker_jobs_total', { queue: NOTE_REVISION_QUEUE, status: 'completed' }),
+);
 noteWorker.on('failed', (job, error) => {
+  metrics.inc('worker_jobs_total', { queue: NOTE_REVISION_QUEUE, status: 'failed' });
   logger.error({ err: error, jobId: job?.id }, 'revision job failed');
   const revisionId = (job?.data as { revisionId?: unknown } | undefined)?.revisionId;
   const attempts = job?.opts.attempts ?? 1;
@@ -129,12 +150,58 @@ noteWorker.on('failed', (job, error) => {
 noteWorker.on('error', (error) => {
   logger.error({ err: error }, 'revision worker error');
 });
+captureWorker.on('completed', () =>
+  metrics.inc('worker_jobs_total', { queue: CAPTURE_QUEUE, status: 'completed' }),
+);
 captureWorker.on('failed', (job, error) => {
+  metrics.inc('worker_jobs_total', { queue: CAPTURE_QUEUE, status: 'failed' });
   logger.error({ err: error, jobId: job?.id }, 'capture job failed');
 });
 captureWorker.on('error', (error) => {
   logger.error({ err: error }, 'capture worker error');
 });
+
+const metricsServer = createServer((request, response) => {
+  if (request.url !== '/metrics') {
+    response.writeHead(404).end();
+    return;
+  }
+  if (config.METRICS_TOKEN && request.headers.authorization !== `Bearer ${config.METRICS_TOKEN}`) {
+    response.writeHead(401).end();
+    return;
+  }
+  response.writeHead(200, { 'content-type': 'text/plain; version=0.0.4; charset=utf-8' });
+  response.end(metrics.render());
+});
+metricsServer.listen(config.METRICS_PORT, '0.0.0.0', () => {
+  logger.info({ port: config.METRICS_PORT }, 'worker metrics listening');
+});
+
+let refreshing = false;
+async function refreshQueueMetrics(): Promise<void> {
+  if (refreshing) return;
+  refreshing = true;
+  try {
+    const [system, revisions, captures] = await Promise.all([
+      queue.getJobCounts(),
+      revisionQueue.queue.getJobCounts(),
+      captureQueue.queue.getJobCounts(),
+    ]);
+    for (const [state, value] of Object.entries(system))
+      metrics.gauge('queue_jobs', { queue: SYSTEM_QUEUE, state }, value);
+    for (const [state, value] of Object.entries(revisions))
+      metrics.gauge('queue_jobs', { queue: NOTE_REVISION_QUEUE, state }, value);
+    for (const [state, value] of Object.entries(captures))
+      metrics.gauge('queue_jobs', { queue: CAPTURE_QUEUE, state }, value);
+  } catch (error) {
+    logger.warn({ err: error }, 'queue metrics refresh failed');
+  } finally {
+    refreshing = false;
+  }
+}
+const queueMetricsTimer = setInterval(() => void refreshQueueMetrics(), 30_000);
+queueMetricsTimer.unref();
+void refreshQueueMetrics();
 
 await Promise.all([
   new Promise<void>((resolve, reject) => {
@@ -181,6 +248,23 @@ const purgeTimer = setInterval(() => void purgeTrash(), 60 * 60 * 1000);
 purgeTimer.unref();
 void purgeTrash();
 
+let retaining = false;
+async function purgeRetention(): Promise<void> {
+  if (retaining) return;
+  retaining = true;
+  try {
+    await retention.purge();
+  } catch (error) {
+    logger.error({ err: error }, 'retention purge failed');
+  } finally {
+    retaining = false;
+  }
+}
+
+const retentionTimer = setInterval(() => void purgeRetention(), 24 * 60 * 60 * 1000);
+retentionTimer.unref();
+void purgeRetention();
+
 let stopping = false;
 
 async function shutdown(signal: string): Promise<void> {
@@ -206,6 +290,7 @@ async function shutdown(signal: string): Promise<void> {
       revisionQueue.close(),
       captureQueue.close(),
       database.close(),
+      new Promise<void>((resolve) => metricsServer.close(() => resolve())),
     ]);
     for (const result of results) {
       if (result.status === 'rejected') {
@@ -215,6 +300,8 @@ async function shutdown(signal: string): Promise<void> {
     }
   } finally {
     clearInterval(purgeTimer);
+    clearInterval(retentionTimer);
+    clearInterval(queueMetricsTimer);
     queueConnection.disconnect();
     workerConnection.disconnect();
     noteWorkerConnection.disconnect();

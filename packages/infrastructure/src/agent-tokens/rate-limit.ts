@@ -1,4 +1,5 @@
 import type { Redis } from 'ioredis';
+import { createRateLimitCounter } from '../rate-limit';
 
 export interface RateLimitResult {
   allowed: boolean;
@@ -14,22 +15,10 @@ export interface AgentRateLimiter {
   ): Promise<RateLimitResult>;
 }
 
-const script = `
-local count = redis.call('INCR', KEYS[1])
-if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
-local ttl = redis.call('TTL', KEYS[1])
-return { count, ttl }
-`;
-
 export function createAgentRateLimiter(redis: Redis): AgentRateLimiter {
+  const counter = createRateLimitCounter(redis);
   return {
-    async consume(tokenId, kind, limit, windowSeconds) {
-      const key = `agent:rate:${tokenId}:${kind}`;
-      const [count, ttl] = (await redis.eval(script, 1, key, windowSeconds)) as [number, number];
-      return {
-        allowed: count <= limit,
-        retryAfterSeconds: Math.max(1, ttl),
-      };
-    },
+    consume: (tokenId, kind, limit, windowSeconds) =>
+      counter(`agent:${tokenId}:${kind}`, limit, windowSeconds),
   };
 }

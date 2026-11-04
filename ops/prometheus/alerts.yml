@@ -1,0 +1,49 @@
+groups:
+  - name: one-last-note
+    rules:
+      - alert: ApiDown
+        expr: up{job="one-last-note-api"} == 0
+        for: 2m
+        labels: { severity: page }
+        annotations:
+          summary: API is not scrapeable
+      - alert: Api5xxWarning
+        expr: sum(rate(api_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(api_requests_total[5m])), 0.001) > 0.02
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: API 5xx ratio above 2% }
+      - alert: Api5xxCritical
+        expr: sum(rate(api_requests_total{status=~"5.."}[2m])) / clamp_min(sum(rate(api_requests_total[2m])), 0.001) > 0.05
+        for: 2m
+        labels: { severity: page }
+        annotations: { summary: API 5xx ratio above 5% }
+      - alert: ApiLatencyWarning
+        expr: histogram_quantile(0.95, sum by (le) (rate(api_request_duration_seconds_bucket[5m]))) > 0.75
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: API p95 above 750ms }
+      - alert: ApiLatencyCritical
+        expr: histogram_quantile(0.95, sum by (le) (rate(api_request_duration_seconds_bucket[2m]))) > 1.5
+        for: 2m
+        labels: { severity: page }
+        annotations: { summary: API p95 above 1.5s }
+      - alert: QueueBacklog
+        expr: max by (queue) (queue_jobs{state="waiting"}) > 100
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: Queue waiting above 100 }
+      - alert: QueueFailures
+        expr: sum by (queue) (increase(worker_jobs_total{status="failed"}[10m])) > 10
+        for: 5m
+        labels: { severity: page }
+        annotations: { summary: More than 10 failed jobs in 10 minutes }
+      - alert: CaptureFailureRate
+        expr: sum(rate(worker_jobs_total{queue="web-captures",status="failed"}[15m])) / clamp_min(sum(rate(worker_jobs_total{queue="web-captures"}[15m])), 0.001) > 0.10
+        for: 15m
+        labels: { severity: warning }
+        annotations: { summary: Capture job failure ratio above 10% }
+      - alert: ReadinessFailing
+        expr: probe_success{job="one-last-note-ready"} == 0
+        for: 2m
+        labels: { severity: page }
+        annotations: { summary: Readiness probe has failed for 2 minutes }

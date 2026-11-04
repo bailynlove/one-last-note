@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { STATUS_CODES } from 'node:http';
 import multipart from '@fastify/multipart';
 import type {
@@ -17,12 +17,18 @@ import type {
 } from '@oln/application';
 import {
   AppError,
-  AuthThrottleError,
   QuotaExceededError,
+  RateLimitError,
   UploadValidationError,
 } from '@oln/application';
-import { MAX_ORIGINAL_BYTES, type ReadinessReport, type ServiceHealth } from '@oln/domain';
-import type { AgentRateLimiter } from '@oln/infrastructure';
+import {
+  API_REQUEST_RATE_LIMIT,
+  API_REQUEST_RATE_WINDOW_SECONDS,
+  MAX_ORIGINAL_BYTES,
+  type ReadinessReport,
+  type ServiceHealth,
+} from '@oln/domain';
+import type { AgentRateLimiter, Metrics } from '@oln/infrastructure';
 import Fastify, { type FastifyBaseLogger, type FastifyError, type FastifyInstance } from 'fastify';
 import { registerAgentTokenRoutes } from './agent-tokens';
 import { registerAnnotationRoutes } from './annotations';
@@ -33,6 +39,7 @@ import { registerExtensionAuthRoutes } from './extension-auth';
 import { registerKnowledgeBaseRoutes } from './knowledge-bases';
 import { registerLifecycleRoutes } from './lifecycle';
 import { registerMcpRoute } from './mcp';
+import { registerMetricsRoute } from './metrics';
 import { registerNoteRoutes } from './notes';
 import { registerRelationRoutes } from './relations';
 
@@ -50,6 +57,13 @@ export interface BuildApiOptions {
   extensionAuth?: ExtensionAuthService;
   agentTokens?: AgentTokenService;
   mcp?: { control: AgentControlService; limiter: AgentRateLimiter };
+  metrics?: Metrics;
+  metricsToken?: string;
+  requestLimiter?: (
+    key: string,
+    limit: number,
+    windowSeconds: number,
+  ) => Promise<{ allowed: boolean; retryAfterSeconds: number }>;
   authProxySecret?: string;
   trustProxy?: number;
   now?: () => Date;
@@ -69,11 +83,15 @@ export function buildApi({
   extensionAuth,
   agentTokens,
   mcp,
+  metrics,
+  metricsToken,
+  requestLimiter,
   authProxySecret,
   trustProxy = 0,
   now = () => new Date(),
 }: BuildApiOptions): FastifyInstance {
   const startedAt = Date.now();
+  const starts = new Map<string, number>();
   const app = Fastify({
     loggerInstance: logger,
     requestIdHeader: 'x-request-id',
@@ -81,9 +99,45 @@ export function buildApi({
     trustProxy: trustProxy > 0 ? (_address, hop) => hop < trustProxy : false,
   });
 
+  app.addHook('onRequest', async (request, reply) => {
+    if (requestLimiter) {
+      const limit = await requestLimiter(
+        `api:${request.ip}`,
+        API_REQUEST_RATE_LIMIT,
+        API_REQUEST_RATE_WINDOW_SECONDS,
+      );
+      if (!limit.allowed) {
+        return reply
+          .code(429)
+          .header('retry-after', String(limit.retryAfterSeconds))
+          .send({ type: 'about:blank', title: 'Too Many Requests', status: 429 });
+      }
+    }
+    starts.set(request.id, performance.now());
+    const incoming = request.headers.traceparent;
+    const traceId =
+      typeof incoming === 'string' && /^[0-9a-f]{2}-[0-9a-f]{32}-/.test(incoming)
+        ? incoming.split('-')[1]
+        : randomBytes(16).toString('hex');
+    request.headers['x-trace-id'] = traceId;
+  });
+
   app.addHook('onSend', async (_request, reply) => {
     reply.header('x-request-id', reply.request.id);
+    reply.header('x-trace-id', String(reply.request.headers['x-trace-id'] ?? ''));
     reply.header('cache-control', 'no-store');
+  });
+
+  app.addHook('onResponse', async (request, reply) => {
+    if (!metrics) return;
+    const start = starts.get(request.id);
+    starts.delete(request.id);
+    const route = request.routeOptions.url ?? 'unknown';
+    const labels = { method: request.method, route, status: String(reply.statusCode) };
+    metrics.inc('api_requests_total', labels);
+    if (start !== undefined) {
+      metrics.observe('api_request_duration_seconds', labels, (performance.now() - start) / 1000);
+    }
   });
 
   app.get(
@@ -140,7 +194,7 @@ export function buildApi({
         ? error.title
         : (STATUS_CODES[status] ?? (clientSafe ? 'Request Error' : 'Internal Server Error'));
 
-    if (error instanceof AuthThrottleError) {
+    if (error instanceof RateLimitError) {
       reply.header('retry-after', String(error.retryAfterSeconds));
     }
     if (status === 401) {
@@ -199,6 +253,8 @@ export function buildApi({
   if (mcp) {
     registerMcpRoute(app, { tokens: agentTokens as AgentTokenService, ...mcp });
   }
+
+  if (metrics) registerMetricsRoute(app, metrics, metricsToken);
 
   return app;
 }

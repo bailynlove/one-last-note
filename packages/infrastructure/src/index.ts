@@ -33,6 +33,7 @@ export { createExtensionAuthStore } from './extension-auth';
 export { createKnowledgeBaseEmailSender, createKnowledgeBaseStore } from './knowledge-bases';
 export { createLifecycleStore } from './lifecycle';
 export { type CreateLoggerOptions, createLogger } from './logging';
+export { createMetrics, Metrics } from './metrics';
 export {
   createClamAvScanner,
   createDevelopmentScanner,
@@ -52,9 +53,11 @@ export {
   SYSTEM_QUEUE,
   scheduleHeartbeat,
 } from './queue/heartbeat';
+export { createRateLimitCounter } from './rate-limit';
 export { type CreateRedisOptions, createRedis } from './redis/client';
 export { redisProbe } from './redis/probe';
 export * from './relations';
+export { createRetentionStore } from './retention';
 export { ObjectStorage, type ObjectStorageOptions } from './storage/client';
 export { objectStorageFromConfig } from './storage/from-config';
 export { storageProbe } from './storage/probe';

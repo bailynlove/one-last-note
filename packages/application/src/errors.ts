@@ -15,3 +15,13 @@ export class AppError extends Error {
     this.title = options.title ?? 'Internal Server Error';
   }
 }
+
+export class RateLimitError extends AppError {
+  readonly retryAfterSeconds: number;
+
+  constructor(message: string, retryAfterSeconds: number, title = 'Too Many Requests') {
+    super(message, { status: 429, title });
+    this.name = 'RateLimitError';
+    this.retryAfterSeconds = Math.max(1, retryAfterSeconds);
+  }
+}

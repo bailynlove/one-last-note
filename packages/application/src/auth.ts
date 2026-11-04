@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { displayNameFromEmail, normalizeEmail, type User } from '@oln/domain';
-import { AppError } from './errors';
+import { AppError, RateLimitError } from './errors';
 
 export const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -83,16 +83,10 @@ export interface AuthRequestContext {
   userAgent?: string | null;
 }
 
-export class AuthThrottleError extends AppError {
-  readonly retryAfterSeconds: number;
-
+export class AuthThrottleError extends RateLimitError {
   constructor(retryAfterSeconds: number) {
-    super('Too many sign-in attempts. Try again later.', {
-      status: 429,
-      title: 'Too Many Requests',
-    });
+    super('Too many sign-in attempts. Try again later.', retryAfterSeconds);
     this.name = 'AuthThrottleError';
-    this.retryAfterSeconds = Math.max(1, retryAfterSeconds);
   }
 }
 

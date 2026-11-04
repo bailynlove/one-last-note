@@ -30,6 +30,7 @@ export {
 export * from './lifecycle';
 export * from './mark';
 export * from './note';
+export * from './operations';
 export * from './relation';
 export * from './renderer';
 export {

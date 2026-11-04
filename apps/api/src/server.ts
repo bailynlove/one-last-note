@@ -13,7 +13,11 @@ import {
   RelationService,
 } from '@oln/application';
 import { loadServerConfig } from '@oln/config';
-import { GOOGLE_CALLBACK_PATH } from '@oln/domain';
+import {
+  GOOGLE_CALLBACK_PATH,
+  NOTE_UPLOAD_RATE_LIMIT,
+  NOTE_UPLOAD_RATE_WINDOW_SECONDS,
+} from '@oln/domain';
 import {
   captureQueueAdapter,
   createAgentRateLimiter,
@@ -34,8 +38,10 @@ import {
   createLifecycleStore,
   createLogger,
   createMagicLinkEmailSender,
+  createMetrics,
   createNoteRevisionQueue,
   createNoteStore,
+  createRateLimitCounter,
   createRedis,
   createRelationStore,
   createSafeFetcher,
@@ -127,6 +133,8 @@ const notes = new NoteService({
   // Local development without a worker releases inline; deployed processing is queued.
   processInline: !config.CLAMAV_HOST,
   logger,
+  uploadLimiter: (userId) =>
+    rateLimit(`note-upload:${userId}`, NOTE_UPLOAD_RATE_LIMIT, NOTE_UPLOAD_RATE_WINDOW_SECONDS),
 });
 
 const relations = new RelationService({
@@ -154,6 +162,7 @@ const appExtensions = new AppExtensionService({
   store: createAppExtensionStore(database),
 });
 
+const rateLimit = createRateLimitCounter(redis);
 const annotations = new AnnotationService({
   store: createAnnotationStore(database),
   noteText: (userId, noteId, revisionId) => notes.revisionText(userId, noteId, revisionId),
@@ -168,6 +177,7 @@ const agentControl = new AgentControlService(
   (agent, entry) =>
     agentTokens.audit(agent, entry.tool, entry.action, entry.subjectType, entry.subjectId),
 );
+const metrics = createMetrics();
 const app = buildApi({
   logger,
   auth,
@@ -181,6 +191,9 @@ const app = buildApi({
   annotations,
   agentTokens,
   mcp: { control: agentControl, limiter: createAgentRateLimiter(redis) },
+  metrics,
+  metricsToken: config.METRICS_TOKEN,
+  requestLimiter: (key, limit, windowSeconds) => rateLimit(key, limit, windowSeconds),
   authProxySecret: config.AUTH_PROXY_SECRET,
   trustProxy: config.TRUST_PROXY_HOPS,
   readiness: new CheckReadiness([

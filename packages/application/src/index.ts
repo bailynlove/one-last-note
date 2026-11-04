@@ -66,7 +66,7 @@ export {
   isPrivateAddress,
   isPublicHttpUrl,
 } from './capture-url';
-export { AppError, type AppErrorOptions } from './errors';
+export { AppError, type AppErrorOptions, RateLimitError } from './errors';
 export {
   type ConsumedExtensionCode,
   ExtensionAuthService,
@@ -124,3 +124,9 @@ export {
   type RevisionSourceReader,
 } from './relations';
 export { renderRevision } from './renderers';
+export {
+  type RetentionLogger,
+  type RetentionResult,
+  RetentionService,
+  type RetentionStore,
+} from './retention';

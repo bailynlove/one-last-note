@@ -55,6 +55,8 @@ export const serverEnvSchema = baseEnv
       .optional(),
     CLAMAV_HOST: z.string().min(1).optional(),
     CLAMAV_PORT: z.coerce.number().int().positive().max(65_535).default(3310),
+    METRICS_PORT: z.coerce.number().int().positive().max(65_535).default(9464),
+    METRICS_TOKEN: z.string().min(16).optional(),
   })
   .superRefine((value, context) => {
     if (value.NODE_ENV === 'production' && !value.SAVER_EXTENSION_ID) {
