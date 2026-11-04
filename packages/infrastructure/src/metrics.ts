@@ -11,7 +11,12 @@ export class Metrics {
   private readonly counters = new Map<string, number>();
   private readonly gauges = new Map<string, number>();
   private readonly histograms = new Map<string, number[]>();
+  private readonly collectors = new Set<() => void>();
   private readonly bucketBounds = [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10];
+
+  addCollector(collector: () => void): void {
+    this.collectors.add(collector);
+  }
 
   inc(name: string, labels: Labels = {}, amount = 1): void {
     const key = `${name}${labelKey(labels)}`;
@@ -31,6 +36,13 @@ export class Metrics {
   }
 
   render(): string {
+    for (const collector of this.collectors) {
+      try {
+        collector();
+      } catch {
+        // A failed collector must not take down the metrics endpoint.
+      }
+    }
     const lines: string[] = [];
     for (const [key, value] of this.counters) lines.push(`${key} ${value}`);
     for (const [key, value] of this.gauges) lines.push(`${key} ${value}`);

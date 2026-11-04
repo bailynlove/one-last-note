@@ -161,6 +161,7 @@ export interface NoteServiceOptions {
   processInline?: boolean;
   logger?: NoteLogger;
   uploadLimiter?: (userId: string) => Promise<{ allowed: boolean; retryAfterSeconds: number }>;
+  acquireUploadSlot?: (userId: string) => Promise<(() => Promise<void>) | null>;
 }
 
 export interface CapturedNoteInput {
@@ -211,16 +212,36 @@ export class NoteService {
     knowledgeBaseIds: string[],
     original: UploadOriginal,
   ): Promise<Note> {
+    await this.checkUploadRate(userId);
+    const release = await this.options.acquireUploadSlot?.(userId);
+    if (this.options.acquireUploadSlot && !release) {
+      throw new RateLimitError('Too many active uploads. Try again shortly.', 60);
+    }
+    try {
+      return await this.uploadWithoutSlot(userId, knowledgeBaseIds, original);
+    } finally {
+      await release?.();
+    }
+  }
+
+  private async checkUploadRate(userId: string): Promise<void> {
+    const limit = await this.options.uploadLimiter?.(userId);
+    if (limit && !limit.allowed) {
+      throw new RateLimitError('Too many uploads. Try again later.', limit.retryAfterSeconds);
+    }
+  }
+
+  private async uploadWithoutSlot(
+    userId: string,
+    knowledgeBaseIds: string[],
+    original: UploadOriginal,
+  ): Promise<Note> {
     const uniqueKnowledgeBaseIds = [...new Set(knowledgeBaseIds)];
     if (uniqueKnowledgeBaseIds.length === 0) {
       throw new AppError('Choose at least one Knowledge Base.', {
         status: 400,
         title: 'Upload rejected',
       });
-    }
-    const limit = await this.options.uploadLimiter?.(userId);
-    if (limit && !limit.allowed) {
-      throw new RateLimitError('Too many uploads. Try again later.', limit.retryAfterSeconds);
     }
     for (const knowledgeBaseId of uniqueKnowledgeBaseIds) {
       await this.requireManager(knowledgeBaseId, userId);
@@ -272,6 +293,23 @@ export class NoteService {
   }
 
   async replace(userId: string, noteId: string, original: UploadOriginal): Promise<Note> {
+    await this.checkUploadRate(userId);
+    const release = await this.options.acquireUploadSlot?.(userId);
+    if (this.options.acquireUploadSlot && !release) {
+      throw new RateLimitError('Too many active uploads. Try again shortly.', 60);
+    }
+    try {
+      return await this.replaceWithoutSlot(userId, noteId, original);
+    } finally {
+      await release?.();
+    }
+  }
+
+  private async replaceWithoutSlot(
+    userId: string,
+    noteId: string,
+    original: UploadOriginal,
+  ): Promise<Note> {
     const note = await this.requireNote(userId, noteId);
     await this.requireManagerForAny(userId, note);
 

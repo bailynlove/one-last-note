@@ -1,4 +1,4 @@
-import { AppError } from '@oln/application';
+import { AppError, type AuthService } from '@oln/application';
 import { buildReadinessReport, type DependencyCheck } from '@oln/domain';
 import { createLogger } from '@oln/infrastructure';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -47,6 +47,57 @@ describe('api', () => {
     const degraded = await app.inject({ method: 'GET', url: '/ready' });
     expect(degraded.statusCode).toBe(503);
     expect(degraded.json()).toMatchObject({ status: 'degraded' });
+  });
+
+  it('limits authenticated reads and writes per User', async () => {
+    const calls: Array<{ key: string; limit: number }> = [];
+    const auth = {
+      resolveSession: async () => ({
+        sessionId: 'session-1',
+        user: {
+          id: 'user-1',
+          email: 'user@example.com',
+          displayName: 'User',
+          avatarUrl: null,
+          createdAt: new Date(0).toISOString(),
+        },
+      }),
+    } as unknown as AuthService;
+    const identityLimiter = async (key: string, limit: number) => {
+      calls.push({ key, limit });
+      return { allowed: false, retryAfterSeconds: 30 };
+    };
+    app = buildApi({
+      logger,
+      readiness: { execute: async () => buildReadinessReport({}) },
+      auth,
+      identityLimiter,
+    });
+
+    const read = await app.inject({
+      method: 'GET',
+      url: '/health',
+      headers: { cookie: 'oln_session=session-token' },
+    });
+    expect(read.statusCode).toBe(429);
+    expect(read.headers['retry-after']).toBe('30');
+    expect(calls).toEqual([{ key: 'identity:user-1:read', limit: 120 }]);
+
+    await app.close();
+    calls.length = 0;
+    app = buildApi({
+      logger,
+      readiness: { execute: async () => buildReadinessReport({}) },
+      auth,
+      identityLimiter,
+    });
+    const write = await app.inject({
+      method: 'POST',
+      url: '/missing',
+      headers: { authorization: 'Bearer session-token' },
+    });
+    expect(write.statusCode).toBe(429);
+    expect(calls).toEqual([{ key: 'identity:user-1:write', limit: 60 }]);
   });
 
   it('serializes unknown routes as problem+json', async () => {

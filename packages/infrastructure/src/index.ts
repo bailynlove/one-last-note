@@ -18,6 +18,7 @@ export {
   createCaptureStore,
   createSafeFetcher,
 } from './captures';
+export { createConcurrencyGate } from './concurrency-gate';
 export { createDatabase, type Database } from './db/client';
 export { runMigrations } from './db/migrate';
 export { databaseProbe } from './db/probe';

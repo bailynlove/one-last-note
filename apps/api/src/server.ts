@@ -29,6 +29,7 @@ import {
   createCaptureQueue,
   createCaptureStore,
   createClamAvScanner,
+  createConcurrencyGate,
   createDatabase,
   createDevelopmentScanner,
   createExtensionAuthStore,
@@ -135,6 +136,7 @@ const notes = new NoteService({
   logger,
   uploadLimiter: (userId) =>
     rateLimit(`note-upload:${userId}`, NOTE_UPLOAD_RATE_LIMIT, NOTE_UPLOAD_RATE_WINDOW_SECONDS),
+  acquireUploadSlot: createConcurrencyGate(redis, 'upload-slot', config.ACTIVE_UPLOAD_LIMIT),
 });
 
 const relations = new RelationService({
@@ -178,6 +180,13 @@ const agentControl = new AgentControlService(
     agentTokens.audit(agent, entry.tool, entry.action, entry.subjectType, entry.subjectId),
 );
 const metrics = createMetrics();
+metrics.addCollector(() => {
+  const stats = database.stats();
+  metrics.gauge('db_pool_connections', { state: 'total' }, stats.total);
+  metrics.gauge('db_pool_connections', { state: 'idle' }, stats.idle);
+  metrics.gauge('db_pool_connections', { state: 'waiting' }, stats.waiting);
+  metrics.gauge('db_pool_max', {}, 10);
+});
 const app = buildApi({
   logger,
   auth,
@@ -194,6 +203,12 @@ const app = buildApi({
   metrics,
   metricsToken: config.METRICS_TOKEN,
   requestLimiter: (key, limit, windowSeconds) => rateLimit(key, limit, windowSeconds),
+  identityLimiter: (key, limit, windowSeconds) => rateLimit(key, limit, windowSeconds),
+  identityLimit: {
+    read: config.AUTHENTICATED_READ_RATE_LIMIT,
+    write: config.AUTHENTICATED_WRITE_RATE_LIMIT,
+    windowSeconds: 60,
+  },
   requestLimit: {
     limit: config.API_REQUEST_RATE_LIMIT,
     windowSeconds: config.API_REQUEST_RATE_WINDOW_SECONDS,

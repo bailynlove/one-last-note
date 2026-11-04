@@ -6,6 +6,7 @@ const { Pool } = pg;
 
 export interface Database {
   readonly db: NodePgDatabase<typeof schema>;
+  stats(): { total: number; idle: number; waiting: number };
   close(): Promise<void>;
 }
 
@@ -28,6 +29,7 @@ export function createDatabase({ connectionString, onError }: CreateDatabaseOpti
 
   return {
     db: drizzle(pool, { schema }),
+    stats: () => ({ total: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount }),
     close: () => pool.end(),
   };
 }

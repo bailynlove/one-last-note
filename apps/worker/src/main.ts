@@ -76,6 +76,13 @@ const retention = new RetentionService({
   logger,
 });
 const metrics = createMetrics();
+metrics.addCollector(() => {
+  const stats = database.stats();
+  metrics.gauge('db_pool_connections', { state: 'total' }, stats.total);
+  metrics.gauge('db_pool_connections', { state: 'idle' }, stats.idle);
+  metrics.gauge('db_pool_connections', { state: 'waiting' }, stats.waiting);
+  metrics.gauge('db_pool_max', {}, 10);
+});
 const scanner = config.CLAMAV_HOST
   ? createClamAvScanner({ host: config.CLAMAV_HOST, port: config.CLAMAV_PORT })
   : createDevelopmentScanner();
@@ -120,7 +127,7 @@ const noteWorker = new Worker(
     }
     await notes.processRevision(revisionId);
   },
-  { connection: noteWorkerConnection, concurrency: config.WORKER_CONCURRENCY },
+  { connection: noteWorkerConnection, concurrency: 2 },
 );
 
 worker.on('completed', () =>
@@ -193,6 +200,19 @@ async function refreshQueueMetrics(): Promise<void> {
       metrics.gauge('queue_jobs', { queue: NOTE_REVISION_QUEUE, state }, value);
     for (const [state, value] of Object.entries(captures))
       metrics.gauge('queue_jobs', { queue: CAPTURE_QUEUE, state }, value);
+    const queues = [
+      [SYSTEM_QUEUE, queue],
+      [NOTE_REVISION_QUEUE, revisionQueue.queue],
+      [CAPTURE_QUEUE, captureQueue.queue],
+    ] as const;
+    for (const [name, source] of queues) {
+      const [oldest] = await source.getJobs(['waiting'], 0, 0, true);
+      metrics.gauge(
+        'queue_oldest_waiting_seconds',
+        { queue: name },
+        oldest ? Math.max(0, (Date.now() - oldest.timestamp) / 1000) : 0,
+      );
+    }
   } catch (error) {
     logger.warn({ err: error }, 'queue metrics refresh failed');
   } finally {

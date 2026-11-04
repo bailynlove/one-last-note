@@ -8,40 +8,45 @@ groups:
         annotations:
           summary: API is not scrapeable
       - alert: Api5xxWarning
-        expr: sum(rate(api_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(api_requests_total[5m])), 0.001) > 0.02
-        for: 5m
+        expr: sum(rate(api_requests_total{status=~"5.."}[15m])) / clamp_min(sum(rate(api_requests_total[15m])), 0.001) > 0.02
+        for: 15m
         labels: { severity: warning }
         annotations: { summary: API 5xx ratio above 2% }
       - alert: Api5xxCritical
-        expr: sum(rate(api_requests_total{status=~"5.."}[2m])) / clamp_min(sum(rate(api_requests_total[2m])), 0.001) > 0.05
-        for: 2m
-        labels: { severity: page }
-        annotations: { summary: API 5xx ratio above 5% }
-      - alert: ApiLatencyWarning
-        expr: histogram_quantile(0.95, sum by (le) (rate(api_request_duration_seconds_bucket[5m]))) > 0.75
+        expr: sum(rate(api_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(api_requests_total[5m])), 0.001) > 0.05
         for: 5m
+        labels: { severity: page }
+        annotations: { summary: API 5xx ratio above 5% for 5 minutes }
+      - alert: ApiLatencyWarning
+        expr: histogram_quantile(0.95, sum by (le) (rate(api_request_duration_seconds_bucket[30m]))) > 0.75
+        for: 30m
         labels: { severity: warning }
         annotations: { summary: API p95 above 750ms }
       - alert: ApiLatencyCritical
-        expr: histogram_quantile(0.95, sum by (le) (rate(api_request_duration_seconds_bucket[2m]))) > 1.5
-        for: 2m
-        labels: { severity: page }
-        annotations: { summary: API p95 above 1.5s }
-      - alert: QueueBacklog
-        expr: max by (queue) (queue_jobs{state="waiting"}) > 100
-        for: 5m
-        labels: { severity: warning }
-        annotations: { summary: Queue waiting above 100 }
-      - alert: QueueFailures
-        expr: sum by (queue) (increase(worker_jobs_total{status="failed"}[10m])) > 10
-        for: 5m
-        labels: { severity: page }
-        annotations: { summary: More than 10 failed jobs in 10 minutes }
-      - alert: CaptureFailureRate
-        expr: sum(rate(worker_jobs_total{queue="web-captures",status="failed"}[15m])) / clamp_min(sum(rate(worker_jobs_total{queue="web-captures"}[15m])), 0.001) > 0.10
+        expr: histogram_quantile(0.95, sum by (le) (rate(api_request_duration_seconds_bucket[15m]))) > 2
         for: 15m
+        labels: { severity: page }
+        annotations: { summary: API p95 above 2s for 15 minutes }
+      - alert: QueueOldestJob
+        expr: max by (queue) (queue_oldest_waiting_seconds) > 900
+        for: 1m
+        labels: { severity: page }
+        annotations: { summary: Oldest queued job is older than 15 minutes }
+      - alert: DatabaseConnections
+        expr: db_pool_connections{state="total"} / clamp_min(db_pool_max, 1) > 0.9
+        for: 10m
+        labels: { severity: page }
+        annotations: { summary: Database pool connections above 90% for 10 minutes }
+      - alert: QueueFailures
+        expr: sum by (queue) (rate(worker_jobs_total{status="failed"}[30m])) / clamp_min(sum by (queue) (rate(worker_jobs_total[30m])), 0.001) > 0.05
+        for: 30m
         labels: { severity: warning }
-        annotations: { summary: Capture job failure ratio above 10% }
+        annotations: { summary: Job failure ratio above 5% for 30 minutes }
+      - alert: SaverSuccessRate
+        expr: sum(rate(worker_jobs_total{queue="web-captures",status="completed"}[1h])) / clamp_min(sum(rate(worker_jobs_total{queue="web-captures"}[1h])), 0.001) < 0.95
+        for: 1h
+        labels: { severity: warning }
+        annotations: { summary: Saver capture success below 95% over one hour }
       - alert: ReadinessFailing
         expr: probe_success{job="one-last-note-ready"} == 0
         for: 2m

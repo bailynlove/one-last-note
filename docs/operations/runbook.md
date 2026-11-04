@@ -4,12 +4,14 @@
 
 | Surface | Limit | Enforcement |
 | --- | --- | --- |
-| Note upload | 30 per User per hour | Redis counter in `NoteService.upload` (web, API, MCP) |
+| Note upload | 30 per User per hour, 5 active | Redis counter + concurrency gate in `NoteService.upload` (web, API, MCP) |
 | Note original | 25 MB | API multipart limit + `NoteService` inspection |
 | KB storage | 5 GB retained | `NoteService` quota transaction |
 | Web capture | 30 per User per hour, 2 active | `capture_attempts` advisory lock |
 | Capture page / media | 5 MB / 10 MB each, 100 MB per Note | safe fetcher + `CaptureService.copyMedia` |
-| API requests | 600 per IP per minute | Redis counter in Fastify `onRequest` |
+| Worker concurrency | 2 capture, 2 render, 1 media | BullMQ worker options + per-worker media gate |
+| Authenticated User | 120 reads and 60 writes per minute | Redis counter in Fastify `onRequest` after session resolution |
+| API requests | 600 per IP per minute | Redis backstop in Fastify `onRequest` |
 | Agent token | 60 requests and 30 writes per minute | Redis counter keyed by token ID |
 | Auth attempts | 5 per IP per 15 minutes | Redis throttle |
 
@@ -49,13 +51,13 @@ are already being removed. It never touches a ready Revision still referenced by
 Load `ops/prometheus/alerts.yml` into the Prometheus/Render alert manager. Thresholds:
 
 - API unavailable for 2 minutes: page.
-- 5xx ratio >2% for 5 minutes (warning), >5% for 2 minutes (page).
-- p95 API latency >750 ms for 5 minutes (warning), >1.5 s for 2 minutes (page).
-- Queue waiting >100 or oldest waiting >5 minutes (warning); failed jobs >10 (page).
-- Capture job failure ratio >10% for 15 minutes (warning); >25% for 5 minutes (page).
+- 5xx ratio >2% for 15 minutes (warning), >5% for 5 minutes (page).
+- p95 API latency >750 ms for 30 minutes (warning), >2 s for 15 minutes (page).
+- Oldest queued job >15 minutes: page.
+- Job failure ratio >5% for 30 minutes: next-business-day ticket.
+- Saver capture success <95% over 1 hour: next-business-day ticket.
+- Database pool connections >90% for 10 minutes: page.
 - Readiness failing for 2 minutes: page.
-- PostgreSQL/Redis saturation: use managed-service alerts; a failed readiness check is the
-  application-level page.
 - Backup/restore failure: #30 runbook; page on any failed restore drill or backup job.
 
 ## Dashboards

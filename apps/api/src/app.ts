@@ -24,6 +24,9 @@ import {
 import {
   API_REQUEST_RATE_LIMIT,
   API_REQUEST_RATE_WINDOW_SECONDS,
+  AUTHENTICATED_RATE_WINDOW_SECONDS,
+  AUTHENTICATED_READ_RATE_LIMIT,
+  AUTHENTICATED_WRITE_RATE_LIMIT,
   MAX_ORIGINAL_BYTES,
   type ReadinessReport,
   type ServiceHealth,
@@ -33,7 +36,7 @@ import Fastify, { type FastifyBaseLogger, type FastifyError, type FastifyInstanc
 import { registerAgentTokenRoutes } from './agent-tokens';
 import { registerAnnotationRoutes } from './annotations';
 import { registerAppExtensionRoutes } from './app-extensions';
-import { registerAuthRoutes } from './auth';
+import { readSessionToken, registerAuthRoutes } from './auth';
 import { registerCaptureRoutes } from './captures';
 import { registerExtensionAuthRoutes } from './extension-auth';
 import { registerKnowledgeBaseRoutes } from './knowledge-bases';
@@ -65,6 +68,12 @@ export interface BuildApiOptions {
     windowSeconds: number,
   ) => Promise<{ allowed: boolean; retryAfterSeconds: number }>;
   requestLimit?: { limit: number; windowSeconds: number };
+  identityLimiter?: (
+    key: string,
+    limit: number,
+    windowSeconds: number,
+  ) => Promise<{ allowed: boolean; retryAfterSeconds: number }>;
+  identityLimit?: { read: number; write: number; windowSeconds: number };
   authProxySecret?: string;
   trustProxy?: number;
   now?: () => Date;
@@ -88,6 +97,8 @@ export function buildApi({
   metricsToken,
   requestLimiter,
   requestLimit,
+  identityLimiter,
+  identityLimit,
   authProxySecret,
   trustProxy = 0,
   now = () => new Date(),
@@ -113,6 +124,28 @@ export function buildApi({
           .code(429)
           .header('retry-after', String(limit.retryAfterSeconds))
           .send({ type: 'about:blank', title: 'Too Many Requests', status: 429 });
+      }
+    }
+    if (identityLimiter && auth) {
+      const token = readSessionToken(request);
+      if (token) {
+        const session = await auth.resolveSession(token);
+        if (session) {
+          const write = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
+          const limit = await identityLimiter(
+            `identity:${session.user.id}:${write ? 'write' : 'read'}`,
+            write
+              ? (identityLimit?.write ?? AUTHENTICATED_WRITE_RATE_LIMIT)
+              : (identityLimit?.read ?? AUTHENTICATED_READ_RATE_LIMIT),
+            identityLimit?.windowSeconds ?? AUTHENTICATED_RATE_WINDOW_SECONDS,
+          );
+          if (!limit.allowed) {
+            return reply
+              .code(429)
+              .header('retry-after', String(limit.retryAfterSeconds))
+              .send({ type: 'about:blank', title: 'Too Many Requests', status: 429 });
+          }
+        }
       }
     }
     starts.set(request.id, performance.now());

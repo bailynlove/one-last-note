@@ -15,12 +15,13 @@ timed, and dogfood/beta gates remain open.
 | Gate | Evidence |
 | --- | --- |
 | Static | `pnpm lint`, `pnpm typecheck` clean |
-| Unit | 75 tests / 23 files |
-| Integration | 76 tests / 14 files, real PostgreSQL, Redis, S3, MCP SDK, BullMQ |
+| Unit | 77 tests / 23 files |
+| Integration | 77 tests / 15 files, real PostgreSQL, Redis, S3, MCP SDK, BullMQ |
 | Build / smoke | `pnpm build`, `pnpm smoke` pass |
 | Real Chromium Saver | `pnpm test:saver` pass (role filtering, duplicate confirmation, recovery) |
 | Accessibility (public pages) | `pnpm a11y`: 0 WCAG A/AA violations on `/login` and signed-out `/` |
 | Security audit | `pnpm audit --prod`: no known vulnerabilities; cross-KB/RBAC and capture SSRF suites pass |
+| Abuse limits | 120 reads / 60 writes per User/min, 5 active uploads, 2 capture / 2 render / 1 media worker concurrency |
 | Timed restore (local) | 22.4s restore, 20 tables and 1,546 objects verified; API `/ready` 200 on restored DB |
 | Load smoke (local) | 20 concurrent `/ready`, 348.1 req/s, p95 91.7ms, 0 errors over 10s |
 

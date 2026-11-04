@@ -180,6 +180,7 @@ const CONTENT_TYPES: Record<string, string> = {
 
 export class CaptureService {
   private readonly now: () => Date;
+  private mediaQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly options: CaptureServiceOptions) {
     this.now = options.now ?? (() => new Date());
@@ -362,11 +363,8 @@ export class CaptureService {
         canonicalUrl,
       );
 
-      const media = await this.copyMedia(
-        attemptId,
-        extracted.imageUrls,
-        storedKeys,
-        controller.signal,
+      const media = await this.withMediaSlot(() =>
+        this.copyMedia(attemptId, extracted.imageUrls, storedKeys, controller.signal),
       );
       await this.options.store.setMediaKeys(attemptId, [...storedKeys]);
       const selected = selectionHtml(attempt.selectionHtml, attempt.selectionText);
@@ -455,6 +453,20 @@ export class CaptureService {
       };
     } catch {
       throw notFound();
+    }
+  }
+
+  private async withMediaSlot<T>(task: () => Promise<T>): Promise<T> {
+    const previous = this.mediaQueue;
+    let release = (): void => undefined;
+    this.mediaQueue = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      return await task();
+    } finally {
+      release();
     }
   }
 
