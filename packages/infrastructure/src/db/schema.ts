@@ -331,6 +331,45 @@ export const annotations = pgTable(
   ],
 );
 
+export const extensionAuthCodes = pgTable(
+  'extension_auth_codes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    codeHash: text('code_hash').notNull().unique(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    challenge: text('challenge').notNull(),
+    redirectUri: text('redirect_uri').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('extension_auth_codes_user_idx').on(table.userId),
+    index('extension_auth_codes_expires_idx').on(table.expiresAt),
+  ],
+);
+
+export const extensionRefreshTokens = pgTable(
+  'extension_refresh_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tokenHash: text('token_hash').notNull().unique(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('extension_refresh_tokens_user_idx').on(table.userId),
+    index('extension_refresh_tokens_expires_idx').on(table.expiresAt),
+  ],
+);
+
 export const auditEvents = pgTable(
   'audit_event',
   {

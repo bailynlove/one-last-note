@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Save to One Last Note</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="popup-header">
+      <div class="brand"><span class="brand-dot"></span>one last note</div>
+      <button class="text-button" id="disconnect" type="button" hidden>Disconnect</button>
+    </header>
+
+    <main class="popup-body">
+      <section id="connect" hidden>
+        <div class="signed-out">
+          <div class="quick-icon" aria-hidden="true">↗</div>
+          <h2>Connect the Saver</h2>
+          <p>Sign in to your One Last Note account once. The Saver stores a revocable session and refreshes it.</p>
+          <button class="primary full" id="connect-button" type="button">Connect to One Last Note</button>
+        </div>
+      </section>
+
+      <section id="form" hidden>
+        <div class="mode-switch">
+          <button type="button" id="mode-page" class="active">Full page</button>
+          <button type="button" id="mode-selection">Selected passage</button>
+        </div>
+
+        <div class="field">
+          <label for="target">Save to</label>
+          <select id="target"></select>
+        </div>
+
+        <div class="capture-summary" id="summary">
+          <strong id="summary-title">Reading this page</strong>
+          <p id="summary-detail">The readable article will become a new Note.</p>
+        </div>
+
+        <p class="notice warning" id="duplicate" hidden role="alert">
+          <strong>Possible duplicate</strong>
+          <span id="duplicate-detail"></span>
+          <button class="link" id="duplicate-open" type="button" hidden>Open existing</button>
+        </p>
+        <p class="notice error" id="error" hidden role="alert"></p>
+        <p class="notice progress" id="progress" hidden role="status">
+          <strong id="progress-title">Saving…</strong>
+          <span id="progress-detail"></span>
+        </p>
+
+        <button class="primary full" id="save" type="button">Save page</button>
+        <div class="button-row" id="result-actions" hidden>
+          <button class="primary full" id="open-note" type="button">Open Note</button>
+          <button class="secondary" id="done" type="button">Done</button>
+        </div>
+        <p class="fine-print">
+          Captures keep a frozen copy of the readable content. Active page code is removed. Saved
+          media stays private to the Knowledge Base.
+        </p>
+      </section>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

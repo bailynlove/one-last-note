@@ -5,6 +5,7 @@ import type {
   AnnotationService,
   AuthService,
   CaptureService,
+  ExtensionAuthService,
   KnowledgeBaseService,
   LifecycleService,
   NoteService,
@@ -21,6 +22,7 @@ import Fastify, { type FastifyBaseLogger, type FastifyError, type FastifyInstanc
 import { registerAnnotationRoutes } from './annotations';
 import { registerAuthRoutes } from './auth';
 import { registerCaptureRoutes } from './captures';
+import { registerExtensionAuthRoutes } from './extension-auth';
 import { registerKnowledgeBaseRoutes } from './knowledge-bases';
 import { registerLifecycleRoutes } from './lifecycle';
 import { registerNoteRoutes } from './notes';
@@ -34,6 +36,7 @@ export interface BuildApiOptions {
   annotations?: AnnotationService;
   lifecycle?: LifecycleService;
   captures?: CaptureService;
+  extensionAuth?: ExtensionAuthService;
   authProxySecret?: string;
   trustProxy?: number;
   now?: () => Date;
@@ -48,6 +51,7 @@ export function buildApi({
   annotations,
   lifecycle,
   captures,
+  extensionAuth,
   authProxySecret,
   trustProxy = 0,
   now = () => new Date(),
@@ -162,6 +166,9 @@ export function buildApi({
   }
   if (auth && captures) {
     registerCaptureRoutes(app, auth, captures);
+  }
+  if (auth && extensionAuth) {
+    registerExtensionAuthRoutes(app, auth, extensionAuth, authProxySecret);
   }
 
   return app;

@@ -40,6 +40,7 @@ export {
   type CaptureStore,
   type CreateCaptureAttemptInput,
   type CreateCaptureInput,
+  DuplicateCaptureError,
 } from './capture';
 export {
   type CaptureMedia,
@@ -56,6 +57,13 @@ export {
   isPublicHttpUrl,
 } from './capture-url';
 export { AppError, type AppErrorOptions } from './errors';
+export {
+  type ConsumedExtensionCode,
+  ExtensionAuthService,
+  type ExtensionAuthServiceOptions,
+  type ExtensionAuthStore,
+  type ExtensionSession,
+} from './extension-auth';
 export {
   type CreatedJoinLink,
   type KnowledgeBaseAccess,

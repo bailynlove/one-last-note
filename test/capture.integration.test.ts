@@ -351,8 +351,17 @@ describe('web capture ingestion', () => {
     });
     expect((repeated.json() as { attempt: { id: string } }).attempt.id).toBe(firstBody.attempt.id);
     await captures.process(firstBody.attempt.id);
-    const duplicate = await startCapture(owner.token, knowledgeBase.id, { url: pageUrl });
-    const duplicateBody = duplicate.json() as { attempt: { id: string } };
+    const duplicateWarning = await startCapture(owner.token, knowledgeBase.id, { url: pageUrl });
+    expect(duplicateWarning.statusCode).toBe(409);
+    expect(
+      (duplicateWarning.json() as { duplicate: { noteId: string } }).duplicate.noteId,
+    ).toBeTruthy();
+    const confirmed = await startCapture(owner.token, knowledgeBase.id, {
+      url: pageUrl,
+      confirmDuplicate: true,
+    });
+    expect(confirmed.statusCode).toBe(202);
+    const duplicateBody = confirmed.json() as { attempt: { id: string } };
     await captures.process(duplicateBody.attempt.id);
     const duplicateStatus = await app.inject({
       method: 'GET',

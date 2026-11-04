@@ -3,6 +3,7 @@ import {
   CaptureLimitError,
   type CaptureService,
   type CreateCaptureInput,
+  DuplicateCaptureError,
 } from '@oln/application';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -13,6 +14,7 @@ const createBody = z.object({
   selectionHtml: z.string().max(1_000_000).nullish(),
   selectionText: z.string().max(1_000_000).nullish(),
   idempotencyKey: z.string().trim().min(1).max(200).nullish(),
+  confirmDuplicate: z.boolean().optional(),
 });
 
 const idParams = z.object({ id: z.uuid() });
@@ -36,11 +38,23 @@ export function registerCaptureRoutes(
       selectionHtml: body.selectionHtml,
       selectionText: body.selectionText,
       idempotencyKey: body.idempotencyKey ?? (typeof headerKey === 'string' ? headerKey : null),
+      confirmDuplicate: body.confirmDuplicate,
     };
     try {
       const result = await captures.create(user.id, id, input);
       reply.status(202).send(result);
     } catch (error) {
+      if (error instanceof DuplicateCaptureError) {
+        reply.status(409).type('application/problem+json').send({
+          type: 'https://one-last-note.dev/problems/409',
+          title: 'Duplicate capture',
+          status: 409,
+          detail: 'A Note with this address already exists in this Knowledge Base.',
+          duplicate: error.duplicate,
+          instance: request.url,
+        });
+        return;
+      }
       if (error instanceof CaptureLimitError) {
         throw new AppError(
           error.reason === 'rate'

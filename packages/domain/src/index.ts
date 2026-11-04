@@ -1,5 +1,6 @@
 export * from './annotation';
 export * from './capture';
+export * from './extension-auth';
 export {
   buildReadinessReport,
   type DependencyCheck,

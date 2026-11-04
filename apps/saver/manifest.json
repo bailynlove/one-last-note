@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "One Last Note Saver",
+  "version": "0.1.0",
+  "description": "Save a readable page or selected passage to a One Last Note Knowledge Base.",
+  "permissions": ["activeTab", "scripting", "storage", "identity"],
+  "host_permissions": ["http://localhost:4000/*"],
+  "action": {
+    "default_title": "Save to One Last Note",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "minimum_chrome_version": "106"
+}

@@ -50,6 +50,10 @@ without requiring credentials. Deployed environments use Cloudflare R2.
 Integration tests and the smoke test expect `.env` (or the same variables in the environment), running
 backing services, and an initialized database and bucket (`pnpm db:migrate && pnpm storage:init`).
 
+## Chrome Saver
+
+`apps/saver` is the Manifest V3 extension. It connects with an authorization code + PKCE flow, saves the readable page or the selected passage into a Knowledge Base where the signed-in User is Owner or Manager, warns before an intentional duplicate, and recovers an attempt after the popup closes. Set `SAVER_EXTENSION_ID` to the unpacked/published extension ID so authorization codes cannot be redirected to another extension. See `apps/saver/README.md` for loading and manual verification; `pnpm test:saver` runs the mocked Chromium popup flow.
+
 ## Workspace layout
 
 ```
@@ -103,7 +107,9 @@ instead of sending mail, which is enough for local development. Production requi
 
 Auth endpoints: `POST /auth/magic-link`, `POST /auth/magic-link/consume`,
 `POST /auth/google/exchange`, `POST /auth/logout`, `GET /auth/me`, and
-`POST /auth/extension-token` (mints a bearer session for the current user).
+`POST /auth/extension-token` (mints a bearer session for the current user). The Chrome Saver uses
+`POST /auth/extension/authorize`, `POST /auth/extension/exchange` (with `redirectUri`),
+`POST /auth/extension/refresh`, and `POST /auth/extension/revoke`.
 
 ## Knowledge Bases and membership
 

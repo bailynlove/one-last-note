@@ -15,7 +15,7 @@ function sameSecret(left: string, right: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-function clientIp(request: FastifyRequest, proxySecret?: string): string {
+export function clientIp(request: FastifyRequest, proxySecret?: string): string {
   const forwardedSecret = request.headers['x-oln-proxy-secret'];
   const forwardedIp = request.headers['x-oln-client-ip'];
   if (

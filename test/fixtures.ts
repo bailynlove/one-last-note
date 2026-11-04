@@ -4,6 +4,7 @@ import {
   type AuthService,
   type CaptureService,
   CheckReadiness,
+  type ExtensionAuthService,
   type KnowledgeBaseService,
   type LifecycleService,
   type NoteService,
@@ -88,6 +89,7 @@ export function startTestApi(
     annotations?: AnnotationService;
     lifecycle?: LifecycleService;
     captures?: CaptureService;
+    extensionAuth?: ExtensionAuthService;
     trustProxy?: number;
     authProxySecret?: string;
   } = {},
@@ -101,6 +103,7 @@ export function startTestApi(
     annotations: options.annotations,
     lifecycle: options.lifecycle,
     captures: options.captures,
+    extensionAuth: options.extensionAuth,
     authProxySecret: options.authProxySecret,
     trustProxy: options.trustProxy,
   });

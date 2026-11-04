@@ -13,7 +13,7 @@ import {
   type CaptureStatus,
   isCaptureStatus,
 } from '@oln/domain';
-import { and, count, eq, gt, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { and, count, eq, gt, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import type { Database } from '../db/client';
 import {
   captureAttempts,
@@ -104,7 +104,7 @@ export function createCaptureStore(database: Database): CaptureStore {
           and(
             eq(noteAssociations.knowledgeBaseId, knowledgeBaseId),
             isNull(noteAssociations.trashedAt),
-            eq(notes.sourceCanonicalUrl, canonicalUrl),
+            or(eq(notes.sourceUrl, canonicalUrl), eq(notes.sourceCanonicalUrl, canonicalUrl)),
             excludeNoteId ? ne(notes.id, excludeNoteId) : undefined,
           ),
         )

@@ -1,0 +1,1 @@
+export { createExtensionAuthStore } from './store';

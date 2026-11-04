@@ -3,6 +3,7 @@ import {
   AuthService,
   CaptureService,
   CheckReadiness,
+  ExtensionAuthService,
   KnowledgeBaseService,
   LifecycleService,
   NoteService,
@@ -19,6 +20,7 @@ import {
   createClamAvScanner,
   createDatabase,
   createDevelopmentScanner,
+  createExtensionAuthStore,
   createGoogleProvider,
   createKnowledgeBaseEmailSender,
   createKnowledgeBaseStore,
@@ -88,6 +90,12 @@ const auth = new AuthService({
   logger,
 });
 
+const extensionAuth = new ExtensionAuthService({
+  store: createExtensionAuthStore(database),
+  auth,
+  allowedExtensionId: config.SAVER_EXTENSION_ID,
+});
+
 const knowledgeBases = new KnowledgeBaseService({
   store: createKnowledgeBaseStore(database),
   email: createKnowledgeBaseEmailSender({
@@ -135,6 +143,7 @@ const app = buildApi({
   lifecycle,
   notes,
   captures,
+  extensionAuth,
   annotations: new AnnotationService({
     store: createAnnotationStore(database),
     noteText: (userId, noteId, revisionId) => notes.revisionText(userId, noteId, revisionId),

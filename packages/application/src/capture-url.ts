@@ -78,6 +78,12 @@ export function isPublicHttpUrl(value: string): boolean {
 export function canonicalizeUrl(value: string): string {
   const url = new URL(value);
   url.hash = '';
+  const tracking = (key: string) =>
+    key.startsWith('utm_') || ['fbclid', 'gclid', 'mc_cid', 'mc_eid', 'ref'].includes(key);
+  for (const key of [...url.searchParams.keys()]) {
+    if (tracking(key)) url.searchParams.delete(key);
+  }
+  url.searchParams.sort();
   if (
     (url.protocol === 'http:' && url.port === '80') ||
     (url.protocol === 'https:' && url.port === '443')

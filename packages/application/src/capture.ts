@@ -128,6 +128,14 @@ export interface CreateCaptureInput {
   selectionHtml?: string | null;
   selectionText?: string | null;
   idempotencyKey?: string | null;
+  confirmDuplicate?: boolean;
+}
+
+export class DuplicateCaptureError extends Error {
+  constructor(readonly duplicate: CaptureDuplicate) {
+    super('A Note with this address already exists');
+    this.name = 'DuplicateCaptureError';
+  }
 }
 
 function utf8(bytes: Uint8Array): string {
@@ -222,6 +230,9 @@ export class CaptureService {
 
     const canonicalUrl = canonicalizeUrl(input.url);
     const duplicateOf = await this.options.store.findDuplicate(knowledgeBaseId, canonicalUrl);
+    if (duplicateOf && !input.confirmDuplicate) {
+      throw new DuplicateCaptureError(duplicateOf);
+    }
     const attempt = await this.options.store.createAttempt({
       knowledgeBaseId,
       userId,
