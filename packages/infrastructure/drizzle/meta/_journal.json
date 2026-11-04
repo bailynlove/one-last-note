@@ -29,6 +29,13 @@
       "when": 1793780655882,
       "tag": "0003_amazing_madripoor",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793784849894,
+      "tag": "0004_lyrical_nightshade",
+      "breakpoints": true
     }
   ]
 }

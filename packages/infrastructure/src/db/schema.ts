@@ -1,6 +1,9 @@
+import type { AnnotationAnchor } from '@oln/domain';
 import { sql } from 'drizzle-orm';
 import {
+  type AnyPgColumn,
   bigint,
+  boolean,
   index,
   integer,
   jsonb,
@@ -232,6 +235,44 @@ export const noteAssociations = pgTable(
   (table) => [
     uniqueIndex('note_associations_note_kb_idx').on(table.noteId, table.knowledgeBaseId),
     index('note_associations_kb_idx').on(table.knowledgeBaseId),
+  ],
+);
+
+export const annotations = pgTable(
+  'annotations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    knowledgeBaseId: uuid('knowledge_base_id')
+      .notNull()
+      .references(() => knowledgeBases.id, { onDelete: 'cascade' }),
+    noteId: uuid('note_id')
+      .notNull()
+      .references(() => notes.id, { onDelete: 'cascade' }),
+    revisionId: uuid('revision_id')
+      .notNull()
+      .references(() => noteRevisions.id, { onDelete: 'cascade' }),
+    originalRevisionId: uuid('original_revision_id')
+      .notNull()
+      .references(() => noteRevisions.id, { onDelete: 'cascade' }),
+    parentId: uuid('parent_id').references((): AnyPgColumn => annotations.id, {
+      onDelete: 'cascade',
+    }),
+    authorUserId: uuid('author_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    kind: text('kind').notNull(),
+    markType: text('mark_type'),
+    body: text('body'),
+    anchor: jsonb('anchor').$type<AnnotationAnchor>().notNull(),
+    needsReview: boolean('needs_review').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('annotations_kb_note_idx').on(table.knowledgeBaseId, table.noteId),
+    index('annotations_parent_idx').on(table.parentId),
+    index('annotations_revision_idx').on(table.revisionId),
   ],
 );
 

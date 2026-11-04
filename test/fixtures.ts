@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
+  type AnnotationService,
   type AuthService,
   CheckReadiness,
   type KnowledgeBaseService,
@@ -82,6 +83,7 @@ export function startTestApi(
     auth?: AuthService;
     knowledgeBases?: KnowledgeBaseService;
     notes?: NoteService;
+    annotations?: AnnotationService;
     trustProxy?: number;
     authProxySecret?: string;
   } = {},
@@ -92,6 +94,7 @@ export function startTestApi(
     auth: options.auth,
     knowledgeBases: options.knowledgeBases,
     notes: options.notes,
+    annotations: options.annotations,
     authProxySecret: options.authProxySecret,
     trustProxy: options.trustProxy,
   });

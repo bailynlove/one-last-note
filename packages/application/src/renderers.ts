@@ -83,6 +83,7 @@ function renderMarkdown(input: RendererInput): RendererResult {
   return {
     kind: 'markdown',
     html,
+    text: sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} }).trim(),
     contentSecurityPolicy: contentSecurityPolicy(Boolean(input.assetsAllowed)),
     assetPolicy: assetPolicy(input),
     diagnostics: [],
@@ -91,12 +92,14 @@ function renderMarkdown(input: RendererInput): RendererResult {
 }
 
 function renderHtml(input: RendererInput): RendererResult {
+  const html = sanitizeHtml(
+    new TextDecoder('utf-8').decode(input.bytes),
+    sanitizeOptions(Boolean(input.assetsAllowed), false),
+  );
   return {
     kind: 'html',
-    html: sanitizeHtml(
-      new TextDecoder('utf-8').decode(input.bytes),
-      sanitizeOptions(Boolean(input.assetsAllowed), false),
-    ),
+    html,
+    text: sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} }).trim(),
     contentSecurityPolicy: contentSecurityPolicy(Boolean(input.assetsAllowed)),
     assetPolicy: assetPolicy(input),
     diagnostics: [],

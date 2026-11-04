@@ -1,7 +1,14 @@
-import { AuthService, CheckReadiness, KnowledgeBaseService, NoteService } from '@oln/application';
+import {
+  AnnotationService,
+  AuthService,
+  CheckReadiness,
+  KnowledgeBaseService,
+  NoteService,
+} from '@oln/application';
 import { loadServerConfig } from '@oln/config';
 import { GOOGLE_CALLBACK_PATH } from '@oln/domain';
 import {
+  createAnnotationStore,
   createAuthStore,
   createAuthThrottle,
   createClamAvScanner,
@@ -102,6 +109,10 @@ const app = buildApi({
   auth,
   knowledgeBases,
   notes,
+  annotations: new AnnotationService({
+    store: createAnnotationStore(database),
+    noteText: (userId, noteId, revisionId) => notes.revisionText(userId, noteId, revisionId),
+  }),
   authProxySecret: config.AUTH_PROXY_SECRET,
   trustProxy: config.TRUST_PROXY_HOPS,
   readiness: new CheckReadiness([

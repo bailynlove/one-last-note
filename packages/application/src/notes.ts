@@ -8,6 +8,7 @@ import {
   type NoteSummary,
 } from '@oln/domain';
 import { AppError } from './errors';
+import { renderRevision } from './renderers';
 
 const ARCHIVE_EXTENSIONS = new Set([
   'zip',
@@ -354,6 +355,25 @@ export class NoteService {
       throw notFound();
     }
     return { revision: stored, bytes: await this.options.storage.get(stored.storageKey) };
+  }
+
+  async revisionText(userId: string, noteId: string, revisionId: string): Promise<string | null> {
+    const note = await this.requireNote(userId, noteId);
+    const revision = note.revisions.find((item) => item.id === revisionId);
+    if (revision?.status !== 'ready') {
+      return null;
+    }
+    const stored = await this.options.store.findRevision(revisionId);
+    if (!stored) {
+      return null;
+    }
+    const bytes = await this.options.storage.get(stored.storageKey);
+    const rendered = renderRevision({
+      filename: revision.originalFilename,
+      mediaType: revision.mediaType,
+      bytes,
+    });
+    return rendered.text ?? null;
   }
 
   async processRevision(revisionId: string): Promise<void> {

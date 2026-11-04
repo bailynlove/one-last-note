@@ -539,3 +539,139 @@
   max-height: 140px;
   overflow: auto;
 }
+
+.annotationList {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.annotationCard {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: white;
+}
+
+.annotationCardActive {
+  border-color: var(--accent, #2f6f5e);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, #2f6f5e) 18%, transparent);
+}
+
+.annotationHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.annotationBody {
+  margin: 8px 0;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.markBadge {
+  display: inline-block;
+  margin: 4px 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent, #2f6f5e) 12%, transparent);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.annotationWarning {
+  margin: 8px 0;
+  font-size: 12px;
+  color: #8a4b12;
+}
+
+.annotationDetails {
+  margin: 6px 0;
+  font-size: 12px;
+}
+
+.annotationForm {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.annotationButtons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.replyList {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 8px 0 0 10px;
+  border-left: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.replyList p {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+}
+
+.overlapList {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+.annotationAuthor {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.annotationMeta {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.page :global([data-oln-focus]) {
+  outline: 3px solid #d97706;
+  outline-offset: 2px;
+  background: color-mix(in srgb, #fbbf24 18%, transparent);
+}
+
+.page :global(button:focus-visible),
+.page :global(a:focus-visible),
+.page :global(textarea:focus-visible),
+.page :global(input:focus-visible),
+.page :global(summary:focus-visible) {
+  outline: 2px solid var(--accent, #2f6f5e);
+  outline-offset: 2px;
+}
+
+.pdfPageWrap {
+  position: relative;
+  display: inline-block;
+}
+
+.pdfRegionLayer {
+  position: absolute;
+  inset: 0;
+  cursor: crosshair;
+  background: color-mix(in srgb, #fbbf24 8%, transparent);
+  border: 1px dashed #b45309;
+}

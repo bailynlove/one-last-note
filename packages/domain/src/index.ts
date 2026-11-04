@@ -1,3 +1,4 @@
+export * from './annotation';
 export {
   buildReadinessReport,
   type DependencyCheck,

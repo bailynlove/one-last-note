@@ -1,4 +1,12 @@
 export {
+  type AnnotationListOptions,
+  AnnotationService,
+  type AnnotationServiceOptions,
+  type AnnotationStore,
+  type CreateAnnotationInput,
+  reanchorText,
+} from './annotations';
+export {
   AUTH_THROTTLE_LIMIT,
   AUTH_THROTTLE_WINDOW_SECONDS,
   type AuthLogger,

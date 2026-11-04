@@ -19,7 +19,14 @@ export function PdfViewer({ url, title }: { url: string; title: string }) {
   const [scale, setScale] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
+  const [regionMode, setRegionMode] = useState(false);
   const timerRef = useRef<number | null>(null);
+  const dragRef = useRef<{
+    x: number;
+    y: number;
+    page: number;
+    rect: DOMRect;
+  } | null>(null);
 
   function clearTimer() {
     if (timerRef.current !== null) {
@@ -49,6 +56,14 @@ export function PdfViewer({ url, title }: { url: string; title: string }) {
   return (
     <div className={styles.pdfViewer}>
       <div className={styles.pdfToolbar} role="toolbar" aria-label="PDF controls">
+        <button
+          className={regionMode ? styles.button : styles.buttonSecondary}
+          type="button"
+          aria-pressed={regionMode}
+          onClick={() => setRegionMode((value) => !value)}
+        >
+          Region
+        </button>
         <button
           className={styles.buttonSecondary}
           type="button"
@@ -128,13 +143,54 @@ export function PdfViewer({ url, title }: { url: string; title: string }) {
               setError('This PDF could not be loaded. Download it to inspect it.');
             }}
           >
-            <Page
-              pageNumber={page}
-              scale={scale}
-              renderTextLayer
-              renderAnnotationLayer={false}
-              loading={<p className={styles.muted}>Loading page…</p>}
-            />
+            <div className={styles.pdfPageWrap}>
+              <Page
+                pageNumber={page}
+                scale={scale}
+                renderTextLayer
+                renderAnnotationLayer={false}
+                loading={<p className={styles.muted}>Loading page…</p>}
+              />
+              {regionMode ? (
+                // biome-ignore lint/a11y/noStaticElementInteractions: drag surface for PDF regions.
+                <div
+                  className={styles.pdfRegionLayer}
+                  role="presentation"
+                  onMouseDown={(event) => {
+                    dragRef.current = {
+                      x: event.clientX,
+                      y: event.clientY,
+                      page,
+                      rect: event.currentTarget.getBoundingClientRect(),
+                    };
+                  }}
+                  onMouseUp={(event) => {
+                    const drag = dragRef.current;
+                    dragRef.current = null;
+                    if (!drag) return;
+                    const left = Math.min(drag.x, event.clientX);
+                    const top = Math.min(drag.y, event.clientY);
+                    const right = Math.max(drag.x, event.clientX);
+                    const bottom = Math.max(drag.y, event.clientY);
+                    if (right - left < 4 || bottom - top < 4) return;
+                    window.dispatchEvent(
+                      new CustomEvent('oln-pdf-region', {
+                        detail: {
+                          page: drag.page,
+                          rect: {
+                            x: (left - drag.rect.left) / drag.rect.width,
+                            y: (top - drag.rect.top) / drag.rect.height,
+                            width: (right - left) / drag.rect.width,
+                            height: (bottom - top) / drag.rect.height,
+                          },
+                        },
+                      }),
+                    );
+                    setRegionMode(false);
+                  }}
+                />
+              ) : null}
+            </div>
           </Document>
         </div>
       )}

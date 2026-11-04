@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { STATUS_CODES } from 'node:http';
 import multipart from '@fastify/multipart';
 import type {
+  AnnotationService,
   AuthService,
   KnowledgeBaseService,
   NoteService,
@@ -15,6 +16,7 @@ import {
 } from '@oln/application';
 import { MAX_ORIGINAL_BYTES, type ReadinessReport, type ServiceHealth } from '@oln/domain';
 import Fastify, { type FastifyBaseLogger, type FastifyError, type FastifyInstance } from 'fastify';
+import { registerAnnotationRoutes } from './annotations';
 import { registerAuthRoutes } from './auth';
 import { registerKnowledgeBaseRoutes } from './knowledge-bases';
 import { registerNoteRoutes } from './notes';
@@ -25,6 +27,7 @@ export interface BuildApiOptions {
   auth?: AuthService;
   knowledgeBases?: KnowledgeBaseService;
   notes?: NoteService;
+  annotations?: AnnotationService;
   authProxySecret?: string;
   trustProxy?: number;
   now?: () => Date;
@@ -36,6 +39,7 @@ export function buildApi({
   auth,
   knowledgeBases,
   notes,
+  annotations,
   authProxySecret,
   trustProxy = 0,
   now = () => new Date(),
@@ -141,6 +145,9 @@ export function buildApi({
   if (auth && notes) {
     app.register(multipart, { limits: { fileSize: MAX_ORIGINAL_BYTES, files: 1 } });
     registerNoteRoutes(app, auth, notes);
+  }
+  if (auth && annotations) {
+    registerAnnotationRoutes(app, auth, annotations);
   }
 
   return app;

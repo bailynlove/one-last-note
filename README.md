@@ -147,6 +147,21 @@ Annotations. External images, media, and fonts in HTML and Markdown are blocked 
 `?assets=1` to load them. Unsupported or failed Revisions show a safe message and keep the
 original downloadable. PDF loading and uploads are capped at 60 seconds.
 
+## Comments and Marks
+
+Every Annotation belongs to one Knowledge Base and points at the Revision where it was created.
+Comments carry text; the built-in `core/highlight` Mark captures a selection without text. Text
+Anchors store the exact quote plus surrounding context and offsets; PDF Anchors store the page and a
+normalized region. When a Note advances, unique text passages are re-anchored automatically;
+ambiguous or PDF passages are flagged for review instead of being moved silently.
+
+Annotations are visible only inside their Knowledge Base. Replies are one level deep. Authors can
+edit or delete their own Comments; Owners and Managers can delete any Annotation. Deleting a root
+Comment that has replies keeps a tombstone. API routes:
+`GET|POST /knowledge-bases/:id/notes/:noteId/annotations`,
+`POST /knowledge-bases/:id/notes/:noteId/annotations/:annotationId/replies`,
+and `PATCH|DELETE /knowledge-bases/:id/notes/:noteId/annotations/:annotationId`.
+
 ## Health and readiness
 
 - `GET /health` on the API and web app is a liveness check.
