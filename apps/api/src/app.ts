@@ -5,6 +5,7 @@ import type {
   AnnotationService,
   AuthService,
   KnowledgeBaseService,
+  LifecycleService,
   NoteService,
   ReadinessChecker,
 } from '@oln/application';
@@ -19,6 +20,7 @@ import Fastify, { type FastifyBaseLogger, type FastifyError, type FastifyInstanc
 import { registerAnnotationRoutes } from './annotations';
 import { registerAuthRoutes } from './auth';
 import { registerKnowledgeBaseRoutes } from './knowledge-bases';
+import { registerLifecycleRoutes } from './lifecycle';
 import { registerNoteRoutes } from './notes';
 
 export interface BuildApiOptions {
@@ -28,6 +30,7 @@ export interface BuildApiOptions {
   knowledgeBases?: KnowledgeBaseService;
   notes?: NoteService;
   annotations?: AnnotationService;
+  lifecycle?: LifecycleService;
   authProxySecret?: string;
   trustProxy?: number;
   now?: () => Date;
@@ -40,6 +43,7 @@ export function buildApi({
   knowledgeBases,
   notes,
   annotations,
+  lifecycle,
   authProxySecret,
   trustProxy = 0,
   now = () => new Date(),
@@ -141,6 +145,9 @@ export function buildApi({
   }
   if (auth && knowledgeBases) {
     registerKnowledgeBaseRoutes(app, auth, knowledgeBases);
+  }
+  if (auth && lifecycle) {
+    registerLifecycleRoutes(app, auth, lifecycle);
   }
   if (auth && notes) {
     app.register(multipart, { limits: { fileSize: MAX_ORIGINAL_BYTES, files: 1 } });

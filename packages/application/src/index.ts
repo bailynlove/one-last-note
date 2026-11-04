@@ -40,6 +40,12 @@ export {
   type StoredOwnershipTransfer,
 } from './knowledge-bases';
 export {
+  daysRemaining,
+  LifecycleService,
+  type LifecycleServiceOptions,
+  type LifecycleStore,
+} from './lifecycle';
+export {
   type AddRevisionInput,
   type AttachAssociationInput,
   type CreateNoteInput,

@@ -9,6 +9,7 @@ import { fetchSessionUser } from '../../../lib/auth';
 import { listKnowledgeBases } from '../../../lib/knowledge-bases';
 import { fetchRevisionBytes, formatBytes, getNote } from '../../../lib/notes';
 import { readSessionToken } from '../../../lib/session';
+import { trashAssociationAction } from '../../knowledge-bases/lifecycle-actions';
 import styles from '../../workspace.module.css';
 import { attachNoteAction, replaceNoteAction, updateNoteTitleAction } from '../actions';
 
@@ -127,6 +128,9 @@ export default async function NotePage({
     roles.has(association.knowledgeBaseId),
   );
   const firstAssociation = visibleAssociations[0];
+  if (!firstAssociation) {
+    notFound();
+  }
   const requestedKnowledgeBaseId =
     typeof query.kb === 'string' &&
     visibleAssociations.some((association) => association.knowledgeBaseId === query.kb)
@@ -328,16 +332,32 @@ export default async function NotePage({
               <span className={styles.badge}>{note.data.associations.length}</span>
             </div>
             <ul className={styles.plainList}>
-              {note.data.associations.map((association) => (
-                <li key={association.id}>
-                  <a
-                    className={styles.textButton}
-                    href={`/knowledge-bases/${association.knowledgeBaseId}#notes`}
-                  >
-                    {association.knowledgeBaseName}
-                  </a>
-                </li>
-              ))}
+              {visibleAssociations.map((association) => {
+                const role = roles.get(association.knowledgeBaseId);
+                const canRemove = role === 'owner' || role === 'manager';
+                return (
+                  <li key={association.id} className={styles.associationRow}>
+                    <a
+                      className={styles.textButton}
+                      href={`/knowledge-bases/${association.knowledgeBaseId}#notes`}
+                    >
+                      {association.knowledgeBaseName}
+                    </a>
+                    {canRemove ? (
+                      <form action={trashAssociationAction}>
+                        <input type="hidden" name="id" value={association.knowledgeBaseId} />
+                        <input type="hidden" name="noteId" value={note.data.id} />
+                        <button
+                          className={`${styles.textButton} ${styles.buttonDanger}`}
+                          type="submit"
+                        >
+                          Move to Trash
+                        </button>
+                      </form>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
             {canManage && otherKnowledgeBases.length > 0 ? (
               <form action={attachNoteAction} className={styles.form}>

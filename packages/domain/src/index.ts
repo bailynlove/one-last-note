@@ -23,6 +23,7 @@ export {
   type Member,
   type OwnershipTransfer,
 } from './knowledge-base';
+export * from './lifecycle';
 export * from './note';
 export * from './renderer';
 export {

@@ -8,6 +8,7 @@ export { runMigrations } from './db/migrate';
 export { databaseProbe } from './db/probe';
 export { auditEvents, authIdentities, magicLinkTokens, sessions, users } from './db/schema';
 export { createKnowledgeBaseEmailSender, createKnowledgeBaseStore } from './knowledge-bases';
+export { createLifecycleStore } from './lifecycle';
 export { type CreateLoggerOptions, createLogger } from './logging';
 export {
   createClamAvScanner,

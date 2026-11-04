@@ -3,6 +3,7 @@ import {
   AuthService,
   CheckReadiness,
   KnowledgeBaseService,
+  LifecycleService,
   NoteService,
 } from '@oln/application';
 import { loadServerConfig } from '@oln/config';
@@ -17,6 +18,7 @@ import {
   createGoogleProvider,
   createKnowledgeBaseEmailSender,
   createKnowledgeBaseStore,
+  createLifecycleStore,
   createLogger,
   createMagicLinkEmailSender,
   createNoteRevisionQueue,
@@ -92,6 +94,8 @@ const knowledgeBases = new KnowledgeBaseService({
   logger,
 });
 
+const lifecycle = new LifecycleService({ store: createLifecycleStore(database) });
+
 const notes = new NoteService({
   store: createNoteStore(database),
   storage: storageAdapter(storage),
@@ -108,6 +112,7 @@ const app = buildApi({
   logger,
   auth,
   knowledgeBases,
+  lifecycle,
   notes,
   annotations: new AnnotationService({
     store: createAnnotationStore(database),

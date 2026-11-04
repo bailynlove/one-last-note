@@ -6,6 +6,7 @@ import type { Database } from '../db/client';
 import {
   annotations,
   knowledgeBaseMemberships,
+  knowledgeBases,
   noteAssociations,
   noteRevisions,
   users,
@@ -72,12 +73,15 @@ export function createAnnotationStore(database: Database): AnnotationStore {
           and(
             eq(noteAssociations.knowledgeBaseId, knowledgeBaseMemberships.knowledgeBaseId),
             eq(noteAssociations.noteId, noteId),
+            isNull(noteAssociations.trashedAt),
           ),
         )
+        .innerJoin(knowledgeBases, eq(knowledgeBases.id, knowledgeBaseMemberships.knowledgeBaseId))
         .where(
           and(
             eq(knowledgeBaseMemberships.knowledgeBaseId, knowledgeBaseId),
             eq(knowledgeBaseMemberships.userId, userId),
+            isNull(knowledgeBases.deletedAt),
           ),
         )
         .limit(1);

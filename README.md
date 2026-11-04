@@ -147,6 +147,24 @@ Annotations. External images, media, and fonts in HTML and Markdown are blocked 
 `?assets=1` to load them. Unsupported or failed Revisions show a safe message and keep the
 original downloadable. PDF loading and uploads are capped at 60 seconds.
 
+## Sharing and Trash
+
+Managers share a Note into another Knowledge Base they manage. Removing an association moves it to
+that Knowledge Base's Trash for 30 days; other associations keep the Note and its Revisions
+available. Trashed associations and deleted Knowledge Bases are purged automatically by the worker
+after 30 days, and stored objects are deleted only when no association retains them.
+
+Only the Owner can delete a Knowledge Base. Deletion preserves memberships and shared Notes, revokes
+Invitations and Join Links, and makes the Knowledge Base unavailable until restored. Notes without
+any remaining association become inaccessible immediately and are purged with their objects after
+30 days. Every trash, restore, and purge writes an `audit_event`.
+
+API routes: `DELETE /knowledge-bases/:id`, `POST /knowledge-bases/:id/restore`,
+`GET /knowledge-bases/deleted`, `GET /knowledge-bases/:id/trash`,
+`DELETE /knowledge-bases/:id/notes/:noteId/association`, and
+`POST /knowledge-bases/:id/notes/:noteId/restore`. The web workspace exposes Trash under each
+Knowledge Base and at `/knowledge-bases/trash`.
+
 ## Comments and Marks
 
 Every Annotation belongs to one Knowledge Base and points at the Revision where it was created.

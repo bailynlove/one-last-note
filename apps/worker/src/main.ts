@@ -1,9 +1,10 @@
-import { NoteService } from '@oln/application';
+import { LifecycleService, NoteService } from '@oln/application';
 import { loadServerConfig } from '@oln/config';
 import {
   createClamAvScanner,
   createDatabase,
   createDevelopmentScanner,
+  createLifecycleStore,
   createLogger,
   createNoteRevisionQueue,
   createNoteStore,
@@ -52,6 +53,7 @@ const storage = objectStorageFromConfig(config);
 const queue = new Queue(SYSTEM_QUEUE, { connection: queueConnection });
 await scheduleHeartbeat(queue);
 const revisionQueue = createNoteRevisionQueue(config.REDIS_URL, onError);
+const lifecycle = new LifecycleService({ store: createLifecycleStore(database) });
 const notes = new NoteService({
   store: createNoteStore(database),
   storage: storageAdapter(storage),
@@ -113,6 +115,28 @@ logger.info(
   'worker ready',
 );
 
+let purging = false;
+async function purgeTrash(): Promise<void> {
+  if (purging) return;
+  purging = true;
+  try {
+    const result = await lifecycle.purgeDue(async (keys) => {
+      for (const key of keys) await storage.deleteObject(key);
+    });
+    if (result.associations + result.knowledgeBases + result.notes > 0) {
+      logger.info(result, 'trash purged');
+    }
+  } catch (error) {
+    logger.error({ err: error }, 'trash purge failed');
+  } finally {
+    purging = false;
+  }
+}
+
+const purgeTimer = setInterval(() => void purgeTrash(), 60 * 60 * 1000);
+purgeTimer.unref();
+void purgeTrash();
+
 let stopping = false;
 
 async function shutdown(signal: string): Promise<void> {
@@ -144,6 +168,7 @@ async function shutdown(signal: string): Promise<void> {
       }
     }
   } finally {
+    clearInterval(purgeTimer);
     queueConnection.disconnect();
     workerConnection.disconnect();
     noteWorkerConnection.disconnect();

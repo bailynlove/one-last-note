@@ -88,6 +88,11 @@ export const knowledgeBases = pgTable('knowledge_bases', {
     .references(() => users.id, { onDelete: 'restrict' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  purgeAfter: timestamp('purge_after', { withTimezone: true }),
+  deletedByUserId: uuid('deleted_by_user_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
 });
 
 export const knowledgeBaseMemberships = pgTable(
@@ -231,10 +236,16 @@ export const noteAssociations = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    trashedAt: timestamp('trashed_at', { withTimezone: true }),
+    purgeAfter: timestamp('purge_after', { withTimezone: true }),
+    trashedByUserId: uuid('trashed_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
   },
   (table) => [
     uniqueIndex('note_associations_note_kb_idx').on(table.noteId, table.knowledgeBaseId),
     index('note_associations_kb_idx').on(table.knowledgeBaseId),
+    index('note_associations_purge_idx').on(table.purgeAfter),
   ],
 );
 

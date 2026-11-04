@@ -11,6 +11,7 @@ import {
   type Member,
   pendingOwnershipTransfer,
 } from '../../../lib/knowledge-bases';
+import { listTrash } from '../../../lib/lifecycle';
 import { formatBytes, listNotes } from '../../../lib/notes';
 import { readSessionToken } from '../../../lib/session';
 import { uploadNoteAction } from '../../notes/actions';
@@ -27,6 +28,7 @@ import {
   transferOwnershipAction,
   updateKnowledgeBaseAction,
 } from '../actions';
+import { deleteKnowledgeBaseAction, restoreAssociationAction } from '../lifecycle-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +87,7 @@ export default async function KnowledgeBasePage({
   const canManage = knowledgeBase.role === 'owner' || knowledgeBase.role === 'manager';
   const isOwner = knowledgeBase.role === 'owner';
   const notes = await listNotes(token, id);
+  const trash = canManage ? await listTrash(token, id) : null;
   const [invitations, joinLinks, pendingTransfer] = await Promise.all([
     canManage ? listInvitations(token, id) : Promise.resolve(null),
     isOwner ? listJoinLinks(token, id) : Promise.resolve(null),
@@ -145,6 +148,13 @@ export default async function KnowledgeBasePage({
               <li>
                 <a className={styles.kbLink} href={`/knowledge-bases/${id}#invitations`}>
                   Invitations
+                </a>
+              </li>
+            ) : null}
+            {canManage ? (
+              <li>
+                <a className={styles.kbLink} href={`/knowledge-bases/${id}#trash`}>
+                  Trash
                 </a>
               </li>
             ) : null}
@@ -299,6 +309,45 @@ export default async function KnowledgeBasePage({
                   </button>
                 </div>
               </form>
+            </section>
+          ) : null}
+
+          {canManage && trash?.ok ? (
+            <section className={styles.card} id="trash">
+              <div className={styles.cardHeader}>
+                <h2 className={styles.cardTitle}>Trash</h2>
+                <span className={styles.badge}>{trash.data.associations.length}</span>
+              </div>
+              {trash.data.associations.length === 0 ? (
+                <p className={styles.notice}>No Notes are in Trash.</p>
+              ) : (
+                <ul className={styles.plainList}>
+                  {trash.data.associations.map((item) => {
+                    const days = Math.max(
+                      0,
+                      Math.ceil((new Date(item.purgeAfter).getTime() - Date.now()) / 86_400_000),
+                    );
+                    return (
+                      <li key={item.noteId} className={styles.associationRow}>
+                        <span>
+                          {item.noteTitle}
+                          <span className={styles.annotationMeta}>
+                            {' '}
+                            · deleted {days} days until purge
+                          </span>
+                        </span>
+                        <form action={restoreAssociationAction}>
+                          <input type="hidden" name="id" value={id} />
+                          <input type="hidden" name="noteId" value={item.noteId} />
+                          <button className={styles.buttonSecondary} type="submit">
+                            Restore
+                          </button>
+                        </form>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </section>
           ) : null}
 
@@ -547,6 +596,30 @@ export default async function KnowledgeBasePage({
                 </select>
                 <button className={styles.button} type="submit">
                   Start transfer
+                </button>
+              </form>
+            </section>
+          ) : null}
+
+          {isOwner ? (
+            <section className={`${styles.card} ${styles.dangerCard}`}>
+              <h2 className={styles.cardTitle}>Delete Knowledge Base</h2>
+              <p className={styles.notice}>
+                This moves the Knowledge Base and its Notes here to Trash for 30 days. Notes shared
+                with other Knowledge Bases stay available there.
+              </p>
+              <form action={deleteKnowledgeBaseAction} className={styles.form}>
+                <input type="hidden" name="id" value={id} />
+                <input type="hidden" name="expectedName" value={knowledgeBase.name} />
+                <label className={styles.label}>
+                  Type {knowledgeBase.name} to confirm
+                  <input className={styles.input} name="confirmName" required />
+                </label>
+                <button
+                  className={`${styles.buttonSecondary} ${styles.buttonDanger}`}
+                  type="submit"
+                >
+                  Move Knowledge Base to Trash
                 </button>
               </form>
             </section>

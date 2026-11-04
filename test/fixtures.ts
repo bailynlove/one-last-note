@@ -4,6 +4,7 @@ import {
   type AuthService,
   CheckReadiness,
   type KnowledgeBaseService,
+  type LifecycleService,
   type NoteService,
   type ReadinessChecker,
 } from '@oln/application';
@@ -84,6 +85,7 @@ export function startTestApi(
     knowledgeBases?: KnowledgeBaseService;
     notes?: NoteService;
     annotations?: AnnotationService;
+    lifecycle?: LifecycleService;
     trustProxy?: number;
     authProxySecret?: string;
   } = {},
@@ -95,6 +97,7 @@ export function startTestApi(
     knowledgeBases: options.knowledgeBases,
     notes: options.notes,
     annotations: options.annotations,
+    lifecycle: options.lifecycle,
     authProxySecret: options.authProxySecret,
     trustProxy: options.trustProxy,
   });

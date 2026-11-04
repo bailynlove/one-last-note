@@ -192,6 +192,7 @@ export function createKnowledgeBaseStore(database: Database): KnowledgeBaseStore
           and(
             eq(knowledgeBaseMemberships.knowledgeBaseId, knowledgeBaseId),
             eq(knowledgeBaseMemberships.userId, userId),
+            isNull(knowledgeBases.deletedAt),
           ),
         )
         .limit(1);
@@ -207,7 +208,7 @@ export function createKnowledgeBaseStore(database: Database): KnowledgeBaseStore
         .select({ knowledgeBase: knowledgeBases, role: knowledgeBaseMemberships.role })
         .from(knowledgeBaseMemberships)
         .innerJoin(knowledgeBases, eq(knowledgeBaseMemberships.knowledgeBaseId, knowledgeBases.id))
-        .where(eq(knowledgeBaseMemberships.userId, userId))
+        .where(and(eq(knowledgeBaseMemberships.userId, userId), isNull(knowledgeBases.deletedAt)))
         .orderBy(knowledgeBases.name);
 
       return rows.map(
@@ -226,7 +227,7 @@ export function createKnowledgeBaseStore(database: Database): KnowledgeBaseStore
           ...(input.description === undefined ? {} : { description: input.description }),
           updatedAt: now,
         })
-        .where(eq(knowledgeBases.id, knowledgeBaseId))
+        .where(and(eq(knowledgeBases.id, knowledgeBaseId), isNull(knowledgeBases.deletedAt)))
         .returning();
       return row ? toKnowledgeBase(row) : null;
     },
@@ -341,7 +342,9 @@ export function createKnowledgeBaseStore(database: Database): KnowledgeBaseStore
         .select({ invitation: knowledgeBaseInvitations, knowledgeBaseName: knowledgeBases.name })
         .from(knowledgeBaseInvitations)
         .innerJoin(knowledgeBases, eq(knowledgeBaseInvitations.knowledgeBaseId, knowledgeBases.id))
-        .where(eq(knowledgeBaseInvitations.tokenHash, tokenHash))
+        .where(
+          and(eq(knowledgeBaseInvitations.tokenHash, tokenHash), isNull(knowledgeBases.deletedAt)),
+        )
         .limit(1);
       return row ? toStoredInvitation(row) : null;
     },
@@ -424,7 +427,9 @@ export function createKnowledgeBaseStore(database: Database): KnowledgeBaseStore
         const [row] = await tx
           .select()
           .from(knowledgeBases)
-          .where(eq(knowledgeBases.id, input.knowledgeBaseId))
+          .where(
+            and(eq(knowledgeBases.id, input.knowledgeBaseId), isNull(knowledgeBases.deletedAt)),
+          )
           .limit(1);
         return row ? toKnowledgeBase(row) : null;
       });
@@ -453,7 +458,7 @@ export function createKnowledgeBaseStore(database: Database): KnowledgeBaseStore
         .select({ link: joinLinks, knowledgeBaseName: knowledgeBases.name })
         .from(joinLinks)
         .innerJoin(knowledgeBases, eq(joinLinks.knowledgeBaseId, knowledgeBases.id))
-        .where(eq(joinLinks.tokenHash, tokenHash))
+        .where(and(eq(joinLinks.tokenHash, tokenHash), isNull(knowledgeBases.deletedAt)))
         .limit(1);
       return row ? toStoredJoinLink(row) : null;
     },
@@ -518,7 +523,9 @@ export function createKnowledgeBaseStore(database: Database): KnowledgeBaseStore
         const [row] = await tx
           .select()
           .from(knowledgeBases)
-          .where(eq(knowledgeBases.id, input.knowledgeBaseId))
+          .where(
+            and(eq(knowledgeBases.id, input.knowledgeBaseId), isNull(knowledgeBases.deletedAt)),
+          )
           .limit(1);
         return row ? toKnowledgeBase(row) : null;
       });
@@ -628,7 +635,9 @@ export function createKnowledgeBaseStore(database: Database): KnowledgeBaseStore
         const [knowledgeBase] = await tx
           .select()
           .from(knowledgeBases)
-          .where(eq(knowledgeBases.id, transfer.knowledgeBaseId))
+          .where(
+            and(eq(knowledgeBases.id, transfer.knowledgeBaseId), isNull(knowledgeBases.deletedAt)),
+          )
           .for('update')
           .limit(1);
         if (!knowledgeBase || knowledgeBase.ownerId !== transfer.fromUserId) {

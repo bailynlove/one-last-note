@@ -13,7 +13,7 @@ import type {
   NoteRevision,
   NoteSummary,
 } from '@oln/domain';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { Database } from '../db/client';
 import {
   knowledgeBaseMemberships,
@@ -66,7 +66,13 @@ async function loadNote(executor: Executor, noteId: string): Promise<Note | null
     })
     .from(noteAssociations)
     .innerJoin(knowledgeBases, eq(noteAssociations.knowledgeBaseId, knowledgeBases.id))
-    .where(eq(noteAssociations.noteId, noteId))
+    .where(
+      and(
+        eq(noteAssociations.noteId, noteId),
+        isNull(noteAssociations.trashedAt),
+        isNull(knowledgeBases.deletedAt),
+      ),
+    )
     .orderBy(knowledgeBases.name);
 
   const revisions = await executor
@@ -175,10 +181,12 @@ export function createNoteStore(database: Database): NoteStore {
       const [row] = await database.db
         .select({ role: knowledgeBaseMemberships.role })
         .from(knowledgeBaseMemberships)
+        .innerJoin(knowledgeBases, eq(knowledgeBases.id, knowledgeBaseMemberships.knowledgeBaseId))
         .where(
           and(
             eq(knowledgeBaseMemberships.knowledgeBaseId, knowledgeBaseId),
             eq(knowledgeBaseMemberships.userId, userId),
+            isNull(knowledgeBases.deletedAt),
           ),
         )
         .limit(1);
@@ -200,7 +208,14 @@ export function createNoteStore(database: Database): NoteStore {
         .select({ noteId: noteAssociations.noteId })
         .from(noteAssociations)
         .innerJoin(notes, eq(noteAssociations.noteId, notes.id))
-        .where(eq(noteAssociations.knowledgeBaseId, knowledgeBaseId))
+        .innerJoin(knowledgeBases, eq(knowledgeBases.id, noteAssociations.knowledgeBaseId))
+        .where(
+          and(
+            eq(noteAssociations.knowledgeBaseId, knowledgeBaseId),
+            isNull(noteAssociations.trashedAt),
+            isNull(knowledgeBases.deletedAt),
+          ),
+        )
         .orderBy(desc(notes.updatedAt));
 
       const loaded = await Promise.all(rows.map((row) => loadNote(database.db, row.noteId)));
@@ -350,7 +365,10 @@ export function createNoteStore(database: Database): NoteStore {
             createdByUserId: input.userId,
             createdAt: input.now,
           })
-          .onConflictDoNothing();
+          .onConflictDoUpdate({
+            target: [noteAssociations.noteId, noteAssociations.knowledgeBaseId],
+            set: { trashedAt: null, purgeAfter: null, trashedByUserId: null },
+          });
         await tx.update(notes).set({ updatedAt: input.now }).where(eq(notes.id, input.noteId));
       });
     },

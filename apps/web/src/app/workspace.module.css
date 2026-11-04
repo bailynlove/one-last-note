@@ -675,3 +675,27 @@
   background: color-mix(in srgb, #fbbf24 8%, transparent);
   border: 1px dashed #b45309;
 }
+
+.associationRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.associationRow:last-child {
+  border-bottom: 0;
+}
+
+.dangerCard {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+}
+
+@media (max-width: 640px) {
+  .associationRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
