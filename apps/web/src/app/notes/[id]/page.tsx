@@ -1,7 +1,11 @@
+import { renderRevision } from '@oln/application';
+import type { RendererResult } from '@oln/domain';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
+import { PdfViewerClient } from '../../../components/PdfViewerClient';
+import { ReaderSelection } from '../../../components/ReaderSelection';
 import { listKnowledgeBases } from '../../../lib/knowledge-bases';
-import { formatBytes, getNote } from '../../../lib/notes';
+import { fetchRevisionBytes, formatBytes, getNote } from '../../../lib/notes';
 import { readSessionToken } from '../../../lib/session';
 import styles from '../../workspace.module.css';
 import { attachNoteAction, replaceNoteAction, updateNoteTitleAction } from '../actions';
@@ -50,7 +54,7 @@ export default async function NotePage({
   const query = await searchParams;
   const note = await getNote(token, id);
   if (!note.ok) {
-    if (note.detail.toLowerCase().includes('not available')) {
+    if (note.status === 404) {
       notFound();
     }
     return (
@@ -85,11 +89,51 @@ export default async function NotePage({
   const current = note.data.revisions.find(
     (revision) => revision.id === note.data.currentRevisionId,
   );
+  const requestedRevision =
+    typeof query.revision === 'string'
+      ? note.data.revisions.find((revision) => revision.id === query.revision)
+      : undefined;
+  const selected = requestedRevision ?? current;
+  const assetsAllowed = query.assets === '1';
+  let rendered: RendererResult | null = null;
+  if (selected?.status === 'ready') {
+    if (selected.mediaType === 'application/pdf' || selected.mediaType.startsWith('image/')) {
+      rendered = renderRevision({
+        filename: selected.originalFilename,
+        mediaType: selected.mediaType,
+        bytes: new Uint8Array(),
+        assetsAllowed,
+      });
+    } else {
+      const bytes = await fetchRevisionBytes(token, note.data.id, selected.id);
+      if (bytes.ok) {
+        rendered = renderRevision({
+          filename: selected.originalFilename,
+          mediaType: selected.mediaType,
+          bytes: bytes.data,
+          assetsAllowed,
+        });
+      }
+    }
+  }
+  const downloadHref = selected
+    ? `/notes/${note.data.id}/revisions/${selected.id}/download`
+    : undefined;
   const firstAssociation = note.data.associations[0];
-  const backKnowledgeBase = firstAssociation?.knowledgeBaseName ?? 'Knowledge Base';
-  const backHref = firstAssociation
-    ? `/knowledge-bases/${firstAssociation.knowledgeBaseId}#notes`
+  const requestedKnowledgeBaseId =
+    typeof query.kb === 'string' &&
+    note.data.associations.some((association) => association.knowledgeBaseId === query.kb)
+      ? query.kb
+      : undefined;
+  const contextAssociation =
+    note.data.associations.find(
+      (association) => association.knowledgeBaseId === requestedKnowledgeBaseId,
+    ) ?? firstAssociation;
+  const backKnowledgeBase = contextAssociation?.knowledgeBaseName ?? 'Knowledge Base';
+  const backHref = contextAssociation
+    ? `/knowledge-bases/${contextAssociation.knowledgeBaseId}#notes`
     : '/';
+  const contextQuery = contextAssociation ? `&kb=${contextAssociation.knowledgeBaseId}` : '';
 
   return (
     <main className={styles.page}>
@@ -106,27 +150,136 @@ export default async function NotePage({
 
       <div className={styles.layout}>
         <aside className={styles.sidebar}>
-          <p className={styles.sidebarHeading}>Note</p>
+          <p className={styles.sidebarHeading}>Knowledge Bases</p>
           <ul className={styles.kbList}>
-            <li>
-              <a className={styles.kbLink} href={backHref}>
-                Back to Knowledge Base
-              </a>
-            </li>
+            {knowledgeBases.ok ? (
+              knowledgeBases.data.map((knowledgeBase) => (
+                <li key={knowledgeBase.id}>
+                  <a
+                    className={`${styles.kbLink} ${
+                      contextAssociation?.knowledgeBaseId === knowledgeBase.id
+                        ? styles.kbLinkActive
+                        : ''
+                    }`}
+                    href={`/knowledge-bases/${knowledgeBase.id}#notes`}
+                  >
+                    {knowledgeBase.name}
+                    <span className={styles.role}>{knowledgeBase.role}</span>
+                  </a>
+                </li>
+              ))
+            ) : (
+              <li>
+                <a className={styles.kbLink} href={backHref}>
+                  Back to Knowledge Base
+                </a>
+              </li>
+            )}
           </ul>
         </aside>
 
         <section className={styles.main}>
           <h1 className={styles.heading}>{note.data.title}</h1>
           <p className={styles.lede}>
-            {current
-              ? `${current.originalFilename} · ${formatBytes(current.byteSize)} · ${current.mediaType}`
+            {selected
+              ? `${selected.originalFilename} · ${formatBytes(selected.byteSize)} · ${selected.mediaType}`
               : 'No current Revision is available.'}
           </p>
 
           {typeof query.error === 'string' ? (
             <p className={`${styles.notice} ${styles.error}`}>{query.error}</p>
           ) : null}
+
+          <ReaderSelection
+            revisionNumber={selected?.revisionNumber}
+            byteSize={selected ? formatBytes(selected.byteSize) : ''}
+            downloadHref={downloadHref}
+          >
+            <div className={styles.readerToolbar}>
+              <div className={styles.revisionTabs}>
+                {note.data.revisions.map((revision) => (
+                  <a
+                    key={revision.id}
+                    className={
+                      revision.id === selected?.id ? styles.revisionTabActive : styles.revisionTab
+                    }
+                    href={`?revision=${revision.id}${contextQuery}`}
+                  >
+                    Rev {revision.revisionNumber}
+                    {revision.id === note.data.currentRevisionId ? ' · current' : ''}
+                  </a>
+                ))}
+              </div>
+              {rendered?.kind === 'html' || rendered?.kind === 'markdown' ? (
+                <a
+                  className={styles.textButton}
+                  href={`?revision=${selected?.id ?? ''}&assets=${assetsAllowed ? '0' : '1'}${contextQuery}`}
+                >
+                  {assetsAllowed ? 'Block external assets' : 'Load external assets'}
+                </a>
+              ) : null}
+            </div>
+
+            {!selected ? (
+              <p className={styles.notice}>
+                {note.data.revisions.length === 0
+                  ? 'This Note has no Revisions yet.'
+                  : 'No current Revision is available. Choose a Revision above.'}
+              </p>
+            ) : selected.status !== 'ready' ? (
+              <div className={styles.notice}>
+                <strong>
+                  Revision {selected.revisionNumber} is {selected.status}.
+                </strong>{' '}
+                {selected.statusDetail
+                  ? (statusMessages[selected.statusDetail] ??
+                    'This Revision could not be accepted.')
+                  : 'It will be available after processing.'}
+              </div>
+            ) : rendered?.kind === 'markdown' || rendered?.kind === 'html' ? (
+              // allow-same-origin is deliberate: the annotation selection bridge reads the frame's
+              // document. Keep scripts/forms/popups disabled and sanitize content before rendering.
+              <iframe
+                className={styles.htmlFrame}
+                title={`${note.data.title} rendered content`}
+                sandbox="allow-same-origin allow-top-navigation-by-user-activation"
+                srcDoc={`<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${rendered.contentSecurityPolicy ?? "default-src 'none'"}"><style>body{font-family:system-ui,sans-serif;line-height:1.6;margin:24px;color:#1d1d1b;background:#fff}img{max-width:100%;height:auto}a{color:#1f5c4a}table{border-collapse:collapse}td,th{border:1px solid #ddd;padding:6px 9px;text-align:left}code,pre{font-family:ui-monospace,monospace;background:#f6f5f2}pre{padding:12px;overflow:auto}</style></head><body>${rendered.html ?? ''}</body></html>`}
+              />
+            ) : rendered?.kind === 'text' ? (
+              <pre className={`${styles.readerText} ${styles.readerContent}`}>{rendered.text}</pre>
+            ) : rendered?.kind === 'unsupported' ? (
+              <div className={styles.notice}>
+                <p>{rendered.diagnostics[0]?.message}</p>
+                {downloadHref ? (
+                  <a className={styles.textButton} href={downloadHref}>
+                    Download original
+                  </a>
+                ) : null}
+              </div>
+            ) : rendered?.kind === 'pdf' && downloadHref ? (
+              <PdfViewerClient url={downloadHref} title={note.data.title} />
+            ) : rendered?.kind === 'image' && downloadHref ? (
+              <div className={styles.imageFrame}>
+                {/* biome-ignore lint/performance/noImgElement: authenticated revision bytes bypass Next image optimization. */}
+                <img src={downloadHref} alt={`Revision ${selected.revisionNumber}`} />
+              </div>
+            ) : (
+              <div className={styles.notice}>
+                <p>The original could not be loaded.</p>
+                {downloadHref ? (
+                  <a className={styles.textButton} href={downloadHref}>
+                    Download original
+                  </a>
+                ) : null}{' '}
+                <a
+                  className={styles.textButton}
+                  href={`?revision=${selected?.id ?? ''}${contextQuery}`}
+                >
+                  Retry
+                </a>
+              </div>
+            )}
+          </ReaderSelection>
 
           <section className={styles.card}>
             <div className={styles.cardHeader}>

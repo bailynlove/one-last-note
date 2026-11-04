@@ -181,7 +181,7 @@ export default async function KnowledgeBasePage({
                 <ul className={styles.plainList}>
                   {notes.data.map((note) => (
                     <li key={note.id}>
-                      <a className={styles.textButton} href={`/notes/${note.id}`}>
+                      <a className={styles.textButton} href={`/notes/${note.id}?kb=${id}`}>
                         {note.title}
                       </a>{' '}
                       {note.latestRevision ? (

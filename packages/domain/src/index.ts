@@ -23,6 +23,7 @@ export {
   type OwnershipTransfer,
 } from './knowledge-base';
 export * from './note';
+export * from './renderer';
 export {
   displayNameFromEmail,
   GOOGLE_CALLBACK_PATH,

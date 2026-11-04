@@ -45,7 +45,9 @@ export type Note = z.infer<typeof noteSchema>;
 export type NoteSummary = z.infer<typeof summarySchema>;
 export type NoteRevision = z.infer<typeof revisionSchema>;
 
-export type NoteApiResult<T> = { ok: true; data: T } | { ok: false; detail: string };
+export type NoteApiResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; detail: string; status?: number };
 
 async function api<T>(
   schema: z.ZodType<T>,
@@ -79,7 +81,7 @@ async function api<T>(
       } catch {
         // Keep the generic message.
       }
-      return { ok: false, detail };
+      return { ok: false, detail, status: response.status };
     }
     return { ok: true, data: schema.parse(await response.json()) };
   } catch {
@@ -164,4 +166,20 @@ export function formatBytes(bytes: number): string {
     return `${(bytes / 1024).toFixed(1)} KB`;
   }
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export async function fetchRevisionBytes(
+  token: string,
+  noteId: string,
+  revisionId: string,
+): Promise<NoteApiResult<Uint8Array>> {
+  try {
+    const response = await downloadRevision(token, noteId, revisionId);
+    if (!response.ok) {
+      return { ok: false, detail: 'The original could not be loaded.' };
+    }
+    return { ok: true, data: new Uint8Array(await response.arrayBuffer()) };
+  } catch {
+    return { ok: false, detail: 'The API is unavailable.' };
+  }
 }

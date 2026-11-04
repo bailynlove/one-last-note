@@ -140,6 +140,13 @@ The web workspace adds Notes to `/knowledge-bases/[id]` and `/notes/[id]`. API r
 `POST /notes/:id/revisions`, `POST /notes/:id/associations`, and
 `GET /notes/:id/revisions/:revisionId/original`.
 
+The focused Reader renders each Ready Revision by type: GFM Markdown (raw HTML is not executed),
+sanitized HTML inside a script-free sandboxed frame, PDF pages with selectable text and page/zoom
+controls, images, and plain text. Selecting rendered or PDF text captures quote/anchor data for
+Annotations. External images, media, and fonts in HTML and Markdown are blocked by default; use
+`?assets=1` to load them. Unsupported or failed Revisions show a safe message and keep the
+original downloadable. PDF loading and uploads are capped at 60 seconds.
+
 ## Health and readiness
 
 - `GET /health` on the API and web app is a liveness check.

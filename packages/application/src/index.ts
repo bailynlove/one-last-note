@@ -53,3 +53,4 @@ export {
   type Probe,
   type ReadinessChecker,
 } from './readiness';
+export { renderRevision } from './renderers';
