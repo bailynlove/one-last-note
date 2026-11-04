@@ -26,6 +26,7 @@ export {
   KnowledgeBaseService,
   type KnowledgeBaseServiceOptions,
   type KnowledgeBaseStore,
+  PendingInvitationError,
   type StoredInvitation,
   type StoredJoinLink,
   type StoredOwnershipTransfer,

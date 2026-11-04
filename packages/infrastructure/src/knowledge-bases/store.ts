@@ -4,6 +4,7 @@ import type {
   StoredJoinLink,
   StoredOwnershipTransfer,
 } from '@oln/application';
+import { PendingInvitationError } from '@oln/application';
 import type {
   KnowledgeBase as DomainKnowledgeBase,
   InvitableRole,
@@ -15,7 +16,7 @@ import type {
   OwnershipTransfer,
   User,
 } from '@oln/domain';
-import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, ne, sql } from 'drizzle-orm';
 import type { Database } from '../db/client';
 import {
   joinLinks,
@@ -276,22 +277,46 @@ export function createKnowledgeBaseStore(database: Database): KnowledgeBaseStore
     },
 
     async createInvitation(input) {
-      const [row] = await database.db
-        .insert(knowledgeBaseInvitations)
-        .values({
-          knowledgeBaseId: input.knowledgeBaseId,
-          email: input.email,
-          role: input.role,
-          tokenHash: input.tokenHash,
-          invitedByUserId: input.invitedByUserId,
-          expiresAt: input.expiresAt,
-          createdAt: input.now,
-        })
-        .returning();
-      if (!row) {
-        throw new Error('Invitation insert returned no row');
-      }
-      return toInvitation(row);
+      return database.db.transaction(async (tx) => {
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(hashtext(${`${input.knowledgeBaseId}:${input.email}`}))`,
+        );
+        const [pending] = await tx
+          .select({ id: knowledgeBaseInvitations.id })
+          .from(knowledgeBaseInvitations)
+          .where(
+            and(
+              eq(knowledgeBaseInvitations.knowledgeBaseId, input.knowledgeBaseId),
+              eq(knowledgeBaseInvitations.email, input.email),
+              isNull(knowledgeBaseInvitations.acceptedAt),
+              isNull(knowledgeBaseInvitations.revokedAt),
+              gt(knowledgeBaseInvitations.expiresAt, input.now),
+              input.replacesInvitationId
+                ? ne(knowledgeBaseInvitations.id, input.replacesInvitationId)
+                : sql`true`,
+            ),
+          )
+          .limit(1);
+        if (pending) {
+          throw new PendingInvitationError();
+        }
+        const [row] = await tx
+          .insert(knowledgeBaseInvitations)
+          .values({
+            knowledgeBaseId: input.knowledgeBaseId,
+            email: input.email,
+            role: input.role,
+            tokenHash: input.tokenHash,
+            invitedByUserId: input.invitedByUserId,
+            expiresAt: input.expiresAt,
+            createdAt: input.now,
+          })
+          .returning();
+        if (!row) {
+          throw new Error('Invitation insert returned no row');
+        }
+        return toInvitation(row);
+      });
     },
 
     async findPendingInvitation(knowledgeBaseId, email) {
@@ -335,26 +360,6 @@ export function createKnowledgeBaseStore(database: Database): KnowledgeBaseStore
         )
         .orderBy(knowledgeBaseInvitations.createdAt);
       return rows.map(toInvitation);
-    },
-
-    async rotateInvitation(input) {
-      const [row] = await database.db
-        .update(knowledgeBaseInvitations)
-        .set({
-          tokenHash: input.tokenHash,
-          expiresAt: input.expiresAt,
-        })
-        .where(
-          and(
-            eq(knowledgeBaseInvitations.id, input.invitationId),
-            eq(knowledgeBaseInvitations.knowledgeBaseId, input.knowledgeBaseId),
-            isNull(knowledgeBaseInvitations.acceptedAt),
-            isNull(knowledgeBaseInvitations.revokedAt),
-            gt(knowledgeBaseInvitations.expiresAt, input.now),
-          ),
-        )
-        .returning();
-      return row ? toInvitation(row) : null;
     },
 
     async revokeInvitation(invitationId, knowledgeBaseId, now) {
@@ -532,16 +537,16 @@ export function createKnowledgeBaseStore(database: Database): KnowledgeBaseStore
         );
     },
 
-    async removeMember(knowledgeBaseId, userId) {
-      await database.db
-        .delete(knowledgeBaseMemberships)
-        .where(
-          and(
-            eq(knowledgeBaseMemberships.knowledgeBaseId, knowledgeBaseId),
-            eq(knowledgeBaseMemberships.userId, userId),
-            sql`${knowledgeBaseMemberships.role} <> 'owner'`,
-          ),
-        );
+    async removeMember(knowledgeBaseId, userId, allowedRole) {
+      const conditions = [
+        eq(knowledgeBaseMemberships.knowledgeBaseId, knowledgeBaseId),
+        eq(knowledgeBaseMemberships.userId, userId),
+        sql`${knowledgeBaseMemberships.role} <> 'owner'`,
+      ];
+      if (allowedRole) {
+        conditions.push(eq(knowledgeBaseMemberships.role, allowedRole));
+      }
+      await database.db.delete(knowledgeBaseMemberships).where(and(...conditions));
     },
 
     async createOwnershipTransfer(input) {
@@ -645,15 +650,20 @@ export function createKnowledgeBaseStore(database: Database): KnowledgeBaseStore
           return null;
         }
 
-        await tx
+        const demoted = await tx
           .update(knowledgeBaseMemberships)
           .set({ role: 'manager' })
           .where(
             and(
               eq(knowledgeBaseMemberships.knowledgeBaseId, transfer.knowledgeBaseId),
               eq(knowledgeBaseMemberships.userId, transfer.fromUserId),
+              eq(knowledgeBaseMemberships.role, 'owner'),
             ),
-          );
+          )
+          .returning({ id: knowledgeBaseMemberships.id });
+        if (demoted.length === 0) {
+          throw new Error('Ownership changed concurrently');
+        }
         const promoted = await tx
           .update(knowledgeBaseMemberships)
           .set({ role: 'owner' })
@@ -665,18 +675,22 @@ export function createKnowledgeBaseStore(database: Database): KnowledgeBaseStore
           )
           .returning({ id: knowledgeBaseMemberships.id });
         if (promoted.length === 0) {
-          return null;
+          throw new Error('Ownership changed concurrently');
         }
-        await tx
+        const [updated] = await tx
           .update(knowledgeBases)
           .set({ ownerId: transfer.toUserId, updatedAt: input.now })
-          .where(eq(knowledgeBases.id, transfer.knowledgeBaseId));
+          .where(eq(knowledgeBases.id, transfer.knowledgeBaseId))
+          .returning();
         await tx
           .update(ownershipTransfers)
           .set({ acceptedAt: input.now })
           .where(eq(ownershipTransfers.id, transfer.id));
 
-        return { ...toKnowledgeBase(knowledgeBase), ownerId: transfer.toUserId };
+        if (!updated) {
+          throw new Error('Knowledge Base not found');
+        }
+        return toKnowledgeBase(updated);
       });
     },
 

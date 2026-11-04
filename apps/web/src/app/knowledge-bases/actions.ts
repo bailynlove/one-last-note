@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import * as kb from '../../lib/knowledge-bases';
 import { readSessionToken } from '../../lib/session';
@@ -122,7 +123,14 @@ export async function createJoinLinkAction(form: FormData): Promise<void> {
     failure(path, result.detail);
   }
   revalidatePath(path);
-  redirect(`${path}?joinToken=${encodeURIComponent(result.data.token)}`);
+  (await cookies()).set('oln_join_preview', result.data.token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path,
+    maxAge: 60,
+  });
+  redirect(`${path}?saved=join-link`);
 }
 
 export async function revokeJoinLinkAction(form: FormData): Promise<void> {

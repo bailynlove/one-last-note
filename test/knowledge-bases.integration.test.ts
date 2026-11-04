@@ -476,7 +476,7 @@ describe('Knowledge Base membership with real storage', () => {
 
     const revoked = await app.inject({
       method: 'DELETE',
-      url: `/knowledge-bases/${knowledgeBase.id}/invitations/${retried.json().id}`,
+      url: `/knowledge-bases/${knowledgeBase.id}/invitations/${resend.json().id}`,
       headers: auth(owner.token),
     });
     expect(revoked.statusCode).toBe(204);
@@ -528,6 +528,23 @@ describe('Knowledge Base membership with real storage', () => {
     const manager = await createUser('manager7');
     const viewer = await createUser('viewer7');
     const knowledgeBase = await createKnowledgeBase(owner.token, 'Races');
+
+    const duplicateEmail = `duplicate-${Date.now()}@example.com`;
+    const invites = await Promise.all([
+      app.inject({
+        method: 'POST',
+        url: `/knowledge-bases/${knowledgeBase.id}/invitations`,
+        headers: auth(owner.token),
+        payload: { email: duplicateEmail, role: 'viewer' },
+      }),
+      app.inject({
+        method: 'POST',
+        url: `/knowledge-bases/${knowledgeBase.id}/invitations`,
+        headers: auth(owner.token),
+        payload: { email: duplicateEmail, role: 'viewer' },
+      }),
+    ]);
+    expect(invites.map((response) => response.statusCode).sort()).toEqual([201, 409]);
 
     const token = await invite(owner.token, knowledgeBase.id, invited.email, 'viewer');
     const [first, second] = await Promise.all([

@@ -1,5 +1,6 @@
 import { loadWebConfig } from '@oln/config';
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { fetchSessionUser } from '../../../lib/auth';
 import {
@@ -87,7 +88,7 @@ export default async function KnowledgeBasePage({
     isOwner ? pendingOwnershipTransfer(token, id) : Promise.resolve(null),
   ]);
   const managers = members.data.filter((member) => member.role === 'manager');
-  const joinToken = typeof query.joinToken === 'string' ? query.joinToken : null;
+  const joinToken = (await cookies()).get('oln_join_preview')?.value ?? null;
   const transferId =
     typeof query.transferId === 'string'
       ? query.transferId
@@ -158,7 +159,7 @@ export default async function KnowledgeBasePage({
           ) : null}
           {typeof query.saved === 'string' ? <p className={styles.notice}>Saved.</p> : null}
 
-          {joinUrl ? (
+          {joinUrl && isOwner ? (
             <section className={styles.card}>
               <div className={styles.cardHeader}>
                 <h2 className={styles.cardTitle}>Join link created</h2>

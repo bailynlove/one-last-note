@@ -16,6 +16,8 @@ import {
 import { createToken, hashToken } from './auth';
 import { AppError } from './errors';
 
+export class PendingInvitationError extends Error {}
+
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const OWNERSHIP_TRANSFER_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_NAME_LENGTH = 120;
@@ -80,18 +82,12 @@ export interface KnowledgeBaseStore {
     tokenHash: string;
     expiresAt: Date;
     invitedByUserId: string;
+    replacesInvitationId?: string;
     now: Date;
   }): Promise<Invitation>;
   findPendingInvitation(knowledgeBaseId: string, email: string): Promise<Invitation | null>;
   findInvitationByHash(tokenHash: string): Promise<StoredInvitation | null>;
   listInvitations(knowledgeBaseId: string): Promise<Invitation[]>;
-  rotateInvitation(input: {
-    invitationId: string;
-    knowledgeBaseId: string;
-    tokenHash: string;
-    expiresAt: Date;
-    now: Date;
-  }): Promise<Invitation | null>;
   revokeInvitation(invitationId: string, knowledgeBaseId: string, now: Date): Promise<void>;
   acceptInvitation(input: {
     invitationId: string;
@@ -123,7 +119,7 @@ export interface KnowledgeBaseStore {
     userId: string;
     role: Exclude<KnowledgeBaseRole, 'owner'>;
   }): Promise<void>;
-  removeMember(knowledgeBaseId: string, userId: string): Promise<void>;
+  removeMember(knowledgeBaseId: string, userId: string, allowedRole?: InvitableRole): Promise<void>;
   createOwnershipTransfer(input: {
     knowledgeBaseId: string;
     fromUserId: string;
@@ -249,15 +245,22 @@ export class KnowledgeBaseService {
     const token = createToken();
     const now = this.now();
     const expiresAt = new Date(now.getTime() + INVITATION_TTL_MS);
-    const invitation = await this.options.store.createInvitation({
-      knowledgeBaseId,
-      email,
-      role,
-      tokenHash: hashToken(token),
-      expiresAt,
-      invitedByUserId: user.id,
-      now,
-    });
+    const invitation = await this.options.store
+      .createInvitation({
+        knowledgeBaseId,
+        email,
+        role,
+        tokenHash: hashToken(token),
+        expiresAt,
+        invitedByUserId: user.id,
+        now,
+      })
+      .catch((error: unknown) => {
+        if (error instanceof PendingInvitationError) {
+          throw conflict('An invitation is already pending for that email.');
+        }
+        throw error;
+      });
 
     try {
       await this.options.email.sendInvitation({
@@ -295,6 +298,23 @@ export class KnowledgeBaseService {
 
     const token = createToken();
     const now = this.now();
+    const replacement = await this.options.store
+      .createInvitation({
+        knowledgeBaseId,
+        email: existing.email,
+        role: existing.role,
+        tokenHash: hashToken(token),
+        expiresAt: new Date(now.getTime() + INVITATION_TTL_MS),
+        invitedByUserId: user.id,
+        replacesInvitationId: existing.id,
+        now,
+      })
+      .catch((error: unknown) => {
+        if (error instanceof PendingInvitationError) {
+          throw conflict('An invitation is already pending for that email.');
+        }
+        throw error;
+      });
     try {
       await this.options.email.sendInvitation({
         to: existing.email,
@@ -304,23 +324,15 @@ export class KnowledgeBaseService {
       });
     } catch (error) {
       this.options.logger?.error({ err: error }, 'knowledge base invitation resend failed');
+      await this.options.store.revokeInvitation(replacement.id, knowledgeBaseId, now);
       throw new AppError('The invitation email could not be sent. Try again.', {
         status: 503,
         title: 'Invitation unavailable',
       });
     }
 
-    const updated = await this.options.store.rotateInvitation({
-      invitationId,
-      knowledgeBaseId,
-      tokenHash: hashToken(token),
-      expiresAt: new Date(now.getTime() + INVITATION_TTL_MS),
-      now,
-    });
-    if (!updated) {
-      throw notFound();
-    }
-    return updated;
+    await this.options.store.revokeInvitation(existing.id, knowledgeBaseId, now);
+    return replacement;
   }
 
   async revokeInvitation(user: User, knowledgeBaseId: string, invitationId: string): Promise<void> {
@@ -492,7 +504,11 @@ export class KnowledgeBaseService {
       throw forbidden('Viewers cannot remove members.');
     }
 
-    await this.options.store.removeMember(knowledgeBaseId, targetUserId);
+    await this.options.store.removeMember(
+      knowledgeBaseId,
+      targetUserId,
+      access.role === 'manager' && targetUserId !== user.id ? 'viewer' : undefined,
+    );
   }
 
   async transferOwnership(
