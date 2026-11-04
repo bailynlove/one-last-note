@@ -4,6 +4,7 @@ import multipart from '@fastify/multipart';
 import type {
   AnnotationService,
   AuthService,
+  CaptureService,
   KnowledgeBaseService,
   LifecycleService,
   NoteService,
@@ -19,6 +20,7 @@ import { MAX_ORIGINAL_BYTES, type ReadinessReport, type ServiceHealth } from '@o
 import Fastify, { type FastifyBaseLogger, type FastifyError, type FastifyInstance } from 'fastify';
 import { registerAnnotationRoutes } from './annotations';
 import { registerAuthRoutes } from './auth';
+import { registerCaptureRoutes } from './captures';
 import { registerKnowledgeBaseRoutes } from './knowledge-bases';
 import { registerLifecycleRoutes } from './lifecycle';
 import { registerNoteRoutes } from './notes';
@@ -31,6 +33,7 @@ export interface BuildApiOptions {
   notes?: NoteService;
   annotations?: AnnotationService;
   lifecycle?: LifecycleService;
+  captures?: CaptureService;
   authProxySecret?: string;
   trustProxy?: number;
   now?: () => Date;
@@ -44,6 +47,7 @@ export function buildApi({
   notes,
   annotations,
   lifecycle,
+  captures,
   authProxySecret,
   trustProxy = 0,
   now = () => new Date(),
@@ -155,6 +159,9 @@ export function buildApi({
   }
   if (auth && annotations) {
     registerAnnotationRoutes(app, auth, annotations);
+  }
+  if (auth && captures) {
+    registerCaptureRoutes(app, auth, captures);
   }
 
   return app;

@@ -21,9 +21,17 @@ const associationSchema = z.object({
   knowledgeBaseName: z.string(),
   createdAt: z.string(),
 });
+const sourceSchema = z.object({
+  url: z.string(),
+  canonicalUrl: z.string(),
+  title: z.string(),
+  siteName: z.string().nullable(),
+  capturedAt: z.string(),
+});
 export const noteSchema = z.object({
   id: z.string(),
   title: z.string(),
+  source: sourceSchema.nullable(),
   currentRevisionId: z.string().nullable(),
   createdByUserId: z.string(),
   createdAt: z.string(),
@@ -34,6 +42,7 @@ export const noteSchema = z.object({
 const summarySchema = z.object({
   id: z.string(),
   title: z.string(),
+  source: sourceSchema.nullable(),
   currentRevisionId: z.string().nullable(),
   latestRevision: revisionSchema.nullable(),
   associationCount: z.number(),

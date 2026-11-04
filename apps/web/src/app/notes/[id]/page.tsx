@@ -217,6 +217,16 @@ export default async function NotePage({
               : 'No current Revision is available.'}
           </p>
 
+          {note.data.source ? (
+            <p className={styles.sourceLine}>
+              Captured from{' '}
+              <a href={note.data.source.canonicalUrl} rel="noopener noreferrer" target="_blank">
+                {note.data.source.siteName ?? new URL(note.data.source.canonicalUrl).hostname}
+              </a>{' '}
+              on {new Date(note.data.source.capturedAt).toLocaleDateString()}
+            </p>
+          ) : null}
+
           {typeof query.error === 'string' ? (
             <p className={`${styles.notice} ${styles.error}`}>{query.error}</p>
           ) : null}

@@ -180,6 +180,20 @@ Comment that has replies keeps a tombstone. API routes:
 `POST /knowledge-bases/:id/notes/:noteId/annotations/:annotationId/replies`,
 and `PATCH|DELETE /knowledge-bases/:id/notes/:noteId/annotations/:annotationId`.
 
+## Web capture
+
+Managers can capture a public page or a selected passage into a Knowledge Base. Capture runs as an
+asynchronous job, stores the readable HTML as a normal immutable Revision, and keeps the source URL,
+canonical URL, site name, and capture time with the Note. Pages are limited to public HTTP(S), with
+DNS and redirect checks that block private networks. Images are limited to 10 MB each and 100 MB per
+Note; page HTML is limited to 5 MB and the whole job is capped at 60 seconds.
+
+Capture attempts are rate-limited to 30 per User per hour and 2 active attempts per User. Duplicate
+canonical URLs are warned about but still captured; repeated requests with the same `Idempotency-Key`
+return the original attempt. API routes:
+`POST /knowledge-bases/:id/captures`, `GET /captures/:id`, `POST /captures/:id/retry`, and
+`GET /capture-media/:attemptId/:filename`.
+
 ## Health and readiness
 
 - `GET /health` on the API and web app is a liveness check.

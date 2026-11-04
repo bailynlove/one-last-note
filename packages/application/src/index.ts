@@ -26,6 +26,35 @@ export {
   SESSION_TTL_MS,
   type SessionContext,
 } from './auth';
+export {
+  type CaptureAttemptPatch,
+  type CaptureFetcher,
+  CaptureLimitError,
+  type CaptureLogger,
+  type CaptureQueue,
+  type CaptureResource,
+  type CaptureScanner,
+  CaptureService,
+  type CaptureServiceOptions,
+  type CaptureStorage,
+  type CaptureStore,
+  type CreateCaptureAttemptInput,
+  type CreateCaptureInput,
+} from './capture';
+export {
+  type CaptureMedia,
+  type ExtractedPage,
+  extractPage,
+  provenanceHtml,
+  rewriteMedia,
+  sanitizeCaptureHtml,
+  selectionHtml,
+} from './capture-html';
+export {
+  canonicalizeUrl,
+  isPrivateAddress,
+  isPublicHttpUrl,
+} from './capture-url';
 export { AppError, type AppErrorOptions } from './errors';
 export {
   type CreatedJoinLink,

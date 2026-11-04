@@ -3,6 +3,14 @@ export { createMagicLinkEmailSender } from './auth/email';
 export { createGoogleProvider } from './auth/google';
 export { createAuthStore } from './auth/store';
 export { createAuthThrottle } from './auth/throttle';
+export {
+  CAPTURE_JOB,
+  CAPTURE_QUEUE,
+  captureQueueAdapter,
+  createCaptureQueue,
+  createCaptureStore,
+  createSafeFetcher,
+} from './captures';
 export { createDatabase, type Database } from './db/client';
 export { runMigrations } from './db/migrate';
 export { databaseProbe } from './db/probe';

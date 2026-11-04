@@ -5,6 +5,7 @@ import {
   type Note,
   type NoteProcessingState,
   type NoteRevision,
+  type NoteSource,
   type NoteSummary,
 } from '@oln/domain';
 import { AppError } from './errors';
@@ -101,6 +102,7 @@ export interface CreateNoteInput {
   storageKey: string;
   status: NoteProcessingState;
   statusDetail: string | null;
+  source?: NoteSource;
   quotaBytes: number;
   now: Date;
 }
@@ -156,6 +158,14 @@ export interface NoteServiceOptions {
   quotaBytes?: number;
   processInline?: boolean;
   logger?: NoteLogger;
+}
+
+export interface CapturedNoteInput {
+  knowledgeBaseId: string;
+  title: string;
+  html: string;
+  source: NoteSource;
+  additionalBytes?: number;
 }
 
 export interface UploadOriginal {
@@ -298,6 +308,60 @@ export class NoteService {
     return publicNote(await this.requireNote(userId, noteId));
   }
 
+  async createCapturedNote(
+    userId: string,
+    input: CapturedNoteInput,
+  ): Promise<{ note: Note; revisionId: string }> {
+    await this.requireManager(input.knowledgeBaseId, userId);
+    const bytes = new TextEncoder().encode(input.html);
+    const byteSize = bytes.length + Math.max(0, input.additionalBytes ?? 0);
+    if (bytes.length > this.maxOriginalBytes) {
+      throw new AppError('The captured page is too large to store.', {
+        status: 413,
+        title: 'Capture too large',
+      });
+    }
+    const noteId = randomUUID();
+    const revisionId = randomUUID();
+    const storageKey = storageKeyFor(noteId, revisionId);
+    const now = this.now();
+    const title = cleanTitle(input.title);
+    const filename = `${
+      title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .slice(0, 80) || 'capture'
+    }.html`;
+
+    await this.options.storage.put(storageKey, bytes, 'text/html');
+    try {
+      await this.options.store.createNote({
+        noteId,
+        revisionId,
+        title,
+        knowledgeBaseIds: [input.knowledgeBaseId],
+        userId,
+        originalFilename: filename,
+        mediaType: 'text/html',
+        byteSize,
+        contentHash: hashBytes(bytes),
+        storageKey,
+        status: 'ready',
+        statusDetail: null,
+        source: input.source,
+        quotaBytes: this.quotaBytes,
+        now,
+      });
+    } catch (error) {
+      this.options.logger?.error(
+        { err: error, storageKey },
+        'captured note storage cleanup skipped after write failure',
+      );
+      throw this.mapStoreError(error);
+    }
+    return { note: publicNote(await this.requireNote(userId, noteId)), revisionId };
+  }
+
   async attachToKnowledgeBase(
     userId: string,
     noteId: string,
@@ -336,6 +400,10 @@ export class NoteService {
       throw notFound();
     }
     return publicNote(updated);
+  }
+
+  async get(userId: string, noteId: string): Promise<Note> {
+    return publicNote(await this.requireNote(userId, noteId));
   }
 
   async download(userId: string, noteId: string, revisionId: string): Promise<DownloadedOriginal> {

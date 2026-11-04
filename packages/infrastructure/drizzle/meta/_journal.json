@@ -43,6 +43,20 @@
       "when": 1793787091396,
       "tag": "0005_elite_kulan_gath",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793788647018,
+      "tag": "0006_sturdy_maverick",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793790106735,
+      "tag": "0007_orange_dracula",
+      "breakpoints": true
     }
   ]
 }

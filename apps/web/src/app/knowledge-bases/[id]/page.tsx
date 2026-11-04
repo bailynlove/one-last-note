@@ -15,6 +15,7 @@ import { listTrash } from '../../../lib/lifecycle';
 import { formatBytes, listNotes } from '../../../lib/notes';
 import { readSessionToken } from '../../../lib/session';
 import { uploadNoteAction } from '../../notes/actions';
+import { capturePageAction } from '../../notes/capture-actions';
 import styles from '../../workspace.module.css';
 import {
   cancelOwnershipTransferAction,
@@ -204,6 +205,24 @@ export default async function KnowledgeBasePage({
                   ))}
                 </ul>
               )}
+              {canManage ? (
+                <form action={capturePageAction} className={styles.form}>
+                  <input type="hidden" name="knowledgeBaseId" value={id} />
+                  <label className={styles.label}>
+                    Capture a web page
+                    <input
+                      className={styles.input}
+                      name="url"
+                      type="url"
+                      placeholder="https://example.com/article"
+                      required
+                    />
+                  </label>
+                  <button className={styles.button} type="submit">
+                    Capture page
+                  </button>
+                </form>
+              ) : null}
               {canManage ? (
                 <form
                   action={uploadNoteAction}

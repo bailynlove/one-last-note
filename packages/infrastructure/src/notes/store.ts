@@ -11,6 +11,7 @@ import type {
   NoteAssociation,
   NoteProcessingState,
   NoteRevision,
+  NoteSource,
   NoteSummary,
 } from '@oln/domain';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
@@ -26,6 +27,19 @@ import {
 type Transaction = Parameters<Parameters<Database['db']['transaction']>[0]>[0];
 type Executor = Database['db'] | Transaction;
 type RevisionRow = typeof noteRevisions.$inferSelect;
+
+function toSource(row: typeof notes.$inferSelect): NoteSource | null {
+  if (!row.sourceUrl || !row.sourceCanonicalUrl || !row.sourceTitle || !row.capturedAt) {
+    return null;
+  }
+  return {
+    url: row.sourceUrl,
+    canonicalUrl: row.sourceCanonicalUrl,
+    title: row.sourceTitle,
+    siteName: row.sourceSiteName,
+    capturedAt: row.capturedAt.toISOString(),
+  };
+}
 
 function toRevision(row: RevisionRow): NoteRevision {
   return {
@@ -84,6 +98,7 @@ async function loadNote(executor: Executor, noteId: string): Promise<Note | null
   return {
     id: note.id,
     title: note.title,
+    source: toSource(note),
     currentRevisionId: note.currentRevisionId,
     createdByUserId: note.createdByUserId,
     createdAt: note.createdAt.toISOString(),
@@ -171,7 +186,7 @@ function insertRevisionValues(input: {
     statusDetail: input.statusDetail,
     uploadedByUserId: input.userId,
     createdAt: input.now,
-    processedAt: input.status === 'rejected' ? input.now : null,
+    processedAt: input.status === 'quarantined' ? null : input.now,
   };
 }
 
@@ -225,6 +240,7 @@ export function createNoteStore(database: Database): NoteStore {
           (note): NoteSummary => ({
             id: note.id,
             title: note.title,
+            source: note.source,
             currentRevisionId: note.currentRevisionId,
             latestRevision: note.revisions[0] ?? null,
             associationCount: note.associations.length,
@@ -253,6 +269,11 @@ export function createNoteStore(database: Database): NoteStore {
         await tx.insert(notes).values({
           id: input.noteId,
           title: input.title,
+          sourceUrl: input.source?.url,
+          sourceCanonicalUrl: input.source?.canonicalUrl,
+          sourceTitle: input.source?.title,
+          sourceSiteName: input.source?.siteName,
+          capturedAt: input.source ? new Date(input.source.capturedAt) : undefined,
           createdByUserId: input.userId,
           createdAt: input.now,
           updatedAt: input.now,
@@ -273,6 +294,12 @@ export function createNoteStore(database: Database): NoteStore {
             now: input.now,
           }),
         );
+        if (input.status === 'ready') {
+          await tx
+            .update(notes)
+            .set({ currentRevisionId: input.revisionId })
+            .where(eq(notes.id, input.noteId));
+        }
         await tx.insert(noteAssociations).values(
           input.knowledgeBaseIds.map((knowledgeBaseId) => ({
             noteId: input.noteId,

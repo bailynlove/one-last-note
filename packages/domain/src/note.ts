@@ -27,9 +27,18 @@ export interface NoteAssociation {
   createdAt: string;
 }
 
+export interface NoteSource {
+  url: string;
+  canonicalUrl: string;
+  title: string;
+  siteName: string | null;
+  capturedAt: string;
+}
+
 export interface Note {
   id: string;
   title: string;
+  source: NoteSource | null;
   currentRevisionId: string | null;
   createdByUserId: string;
   createdAt: string;
@@ -41,6 +50,7 @@ export interface Note {
 export interface NoteSummary {
   id: string;
   title: string;
+  source: NoteSource | null;
   currentRevisionId: string | null;
   latestRevision: NoteRevision | null;
   associationCount: number;

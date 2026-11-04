@@ -5,6 +5,7 @@ import type { Database } from '../db/client';
 import {
   annotations,
   auditEvents,
+  captureAttempts,
   joinLinks,
   knowledgeBaseInvitations,
   knowledgeBaseMemberships,
@@ -367,6 +368,19 @@ export function createLifecycleStore(database: Database): LifecycleStore {
               lte(noteAssociations.purgeAfter, now),
             ),
           );
+        const captureKeys: string[] = [];
+        if (dueKbs.length > 0) {
+          const rows = await tx
+            .select({ keys: captureAttempts.mediaKeys })
+            .from(captureAttempts)
+            .where(
+              inArray(
+                captureAttempts.knowledgeBaseId,
+                dueKbs.map((row) => row.id),
+              ),
+            );
+          for (const row of rows) captureKeys.push(...row.keys);
+        }
         const affectedNotes = new Set<string>(dueAssociations.map((row) => row.noteId));
         for (const kb of dueKbs) {
           const rows = await tx
@@ -423,11 +437,22 @@ export function createLifecycleStore(database: Database): LifecycleStore {
                 .from(noteRevisions)
                 .where(inArray(noteRevisions.noteId, orphanIds))
             : [];
-        const keys = objectRows.map((row) => row.storageKey);
+        if (orphanIds.length > 0) {
+          const rows = await tx
+            .select({ keys: captureAttempts.mediaKeys })
+            .from(captureAttempts)
+            .where(inArray(captureAttempts.noteId, orphanIds));
+          for (const row of rows) captureKeys.push(...row.keys);
+        }
+        const keys = [...objectRows.map((row) => row.storageKey), ...captureKeys];
         if (keys.length > 0) {
           await deleteObjects(keys);
         }
         if (orphanIds.length > 0) {
+          await tx
+            .update(captureAttempts)
+            .set({ mediaKeys: [] })
+            .where(inArray(captureAttempts.noteId, orphanIds));
           await tx.delete(notes).where(inArray(notes.id, orphanIds));
         }
         for (const kb of dueKbs) {

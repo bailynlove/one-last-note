@@ -699,3 +699,9 @@
     flex-direction: column;
   }
 }
+
+.sourceLine {
+  margin: -0.4rem 0 1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}

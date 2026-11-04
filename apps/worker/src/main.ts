@@ -1,6 +1,10 @@
-import { LifecycleService, NoteService } from '@oln/application';
+import { CaptureService, LifecycleService, NoteService } from '@oln/application';
 import { loadServerConfig } from '@oln/config';
 import {
+  CAPTURE_QUEUE,
+  captureQueueAdapter,
+  createCaptureQueue,
+  createCaptureStore,
   createClamAvScanner,
   createDatabase,
   createDevelopmentScanner,
@@ -9,6 +13,7 @@ import {
   createNoteRevisionQueue,
   createNoteStore,
   createRedis,
+  createSafeFetcher,
   NOTE_REVISION_QUEUE,
   objectStorageFromConfig,
   processHeartbeat,
@@ -47,6 +52,10 @@ const noteWorkerConnection = createRedis(config.REDIS_URL, {
   maxRetriesPerRequest: null,
   onError,
 });
+const captureWorkerConnection = createRedis(config.REDIS_URL, {
+  maxRetriesPerRequest: null,
+  onError,
+});
 
 const database = createDatabase({ connectionString: config.DATABASE_URL });
 const storage = objectStorageFromConfig(config);
@@ -54,12 +63,23 @@ const queue = new Queue(SYSTEM_QUEUE, { connection: queueConnection });
 await scheduleHeartbeat(queue);
 const revisionQueue = createNoteRevisionQueue(config.REDIS_URL, onError);
 const lifecycle = new LifecycleService({ store: createLifecycleStore(database) });
+const scanner = config.CLAMAV_HOST
+  ? createClamAvScanner({ host: config.CLAMAV_HOST, port: config.CLAMAV_PORT })
+  : createDevelopmentScanner();
 const notes = new NoteService({
   store: createNoteStore(database),
   storage: storageAdapter(storage),
-  scanner: config.CLAMAV_HOST
-    ? createClamAvScanner({ host: config.CLAMAV_HOST, port: config.CLAMAV_PORT })
-    : createDevelopmentScanner(),
+  scanner,
+  logger,
+});
+const captureQueue = createCaptureQueue(config.REDIS_URL, onError);
+const captures = new CaptureService({
+  store: createCaptureStore(database),
+  fetcher: createSafeFetcher(),
+  queue: captureQueueAdapter(captureQueue.queue),
+  notes,
+  storage: storageAdapter(storage),
+  scanner,
   logger,
 });
 
@@ -67,6 +87,17 @@ const worker = new Worker(SYSTEM_QUEUE, processHeartbeat(logger), {
   connection: workerConnection,
   concurrency: config.WORKER_CONCURRENCY,
 });
+const captureWorker = new Worker(
+  CAPTURE_QUEUE,
+  async (job) => {
+    const attemptId = (job.data as { attemptId?: unknown }).attemptId;
+    if (typeof attemptId !== 'string') {
+      throw new Error('Capture job is missing attemptId');
+    }
+    await captures.process(attemptId);
+  },
+  { connection: captureWorkerConnection, concurrency: 2 },
+);
 const noteWorker = new Worker(
   NOTE_REVISION_QUEUE,
   async (job) => {
@@ -98,6 +129,12 @@ noteWorker.on('failed', (job, error) => {
 noteWorker.on('error', (error) => {
   logger.error({ err: error }, 'revision worker error');
 });
+captureWorker.on('failed', (job, error) => {
+  logger.error({ err: error, jobId: job?.id }, 'capture job failed');
+});
+captureWorker.on('error', (error) => {
+  logger.error({ err: error }, 'capture worker error');
+});
 
 await Promise.all([
   new Promise<void>((resolve, reject) => {
@@ -108,10 +145,17 @@ await Promise.all([
     noteWorker.once('ready', () => resolve());
     noteWorker.once('error', (error) => reject(error));
   }),
+  new Promise<void>((resolve, reject) => {
+    captureWorker.once('ready', () => resolve());
+    captureWorker.once('error', (error) => reject(error));
+  }),
 ]);
 
 logger.info(
-  { queues: [SYSTEM_QUEUE, NOTE_REVISION_QUEUE], concurrency: config.WORKER_CONCURRENCY },
+  {
+    queues: [SYSTEM_QUEUE, NOTE_REVISION_QUEUE, CAPTURE_QUEUE],
+    concurrency: config.WORKER_CONCURRENCY,
+  },
   'worker ready',
 );
 
@@ -157,8 +201,10 @@ async function shutdown(signal: string): Promise<void> {
     const results = await Promise.allSettled([
       worker.close(),
       noteWorker.close(),
+      captureWorker.close(),
       queue.close(),
       revisionQueue.close(),
+      captureQueue.close(),
       database.close(),
     ]);
     for (const result of results) {
@@ -172,6 +218,7 @@ async function shutdown(signal: string): Promise<void> {
     queueConnection.disconnect();
     workerConnection.disconnect();
     noteWorkerConnection.disconnect();
+    captureWorkerConnection.disconnect();
     storage.destroy();
     clearTimeout(forceExit);
   }

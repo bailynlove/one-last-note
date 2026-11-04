@@ -1,6 +1,7 @@
 import {
   AnnotationService,
   AuthService,
+  CaptureService,
   CheckReadiness,
   KnowledgeBaseService,
   LifecycleService,
@@ -9,9 +10,12 @@ import {
 import { loadServerConfig } from '@oln/config';
 import { GOOGLE_CALLBACK_PATH } from '@oln/domain';
 import {
+  captureQueueAdapter,
   createAnnotationStore,
   createAuthStore,
   createAuthThrottle,
+  createCaptureQueue,
+  createCaptureStore,
   createClamAvScanner,
   createDatabase,
   createDevelopmentScanner,
@@ -24,6 +28,7 @@ import {
   createNoteRevisionQueue,
   createNoteStore,
   createRedis,
+  createSafeFetcher,
   databaseProbe,
   objectStorageFromConfig,
   redisProbe,
@@ -108,12 +113,28 @@ const notes = new NoteService({
   logger,
 });
 
+const captureQueue = createCaptureQueue(config.REDIS_URL, (error) =>
+  logger.warn({ err: error }, 'capture queue connection error'),
+);
+const captures = new CaptureService({
+  store: createCaptureStore(database),
+  fetcher: createSafeFetcher(),
+  queue: captureQueueAdapter(captureQueue.queue),
+  notes,
+  storage: storageAdapter(storage),
+  scanner: config.CLAMAV_HOST
+    ? createClamAvScanner({ host: config.CLAMAV_HOST, port: config.CLAMAV_PORT })
+    : createDevelopmentScanner(),
+  logger,
+});
+
 const app = buildApi({
   logger,
   auth,
   knowledgeBases,
   lifecycle,
   notes,
+  captures,
   annotations: new AnnotationService({
     store: createAnnotationStore(database),
     noteText: (userId, noteId, revisionId) => notes.revisionText(userId, noteId, revisionId),
@@ -156,6 +177,7 @@ async function shutdown(signal: string): Promise<void> {
       (async () => redis.disconnect())(),
       (async () => storage.destroy())(),
       revisionQueue.close(),
+      captureQueue.close(),
     ]);
 
     for (const result of results) {

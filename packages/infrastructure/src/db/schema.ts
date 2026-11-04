@@ -185,6 +185,11 @@ export const notes = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     title: text('title').notNull(),
+    sourceUrl: text('source_url'),
+    sourceCanonicalUrl: text('source_canonical_url'),
+    sourceTitle: text('source_title'),
+    sourceSiteName: text('source_site_name'),
+    capturedAt: timestamp('captured_at', { withTimezone: true }),
     currentRevisionId: uuid('current_revision_id'),
     createdByUserId: uuid('created_by_user_id')
       .notNull()
@@ -192,7 +197,10 @@ export const notes = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('notes_created_by_idx').on(table.createdByUserId)],
+  (table) => [
+    index('notes_created_by_idx').on(table.createdByUserId),
+    index('notes_source_canonical_idx').on(table.sourceCanonicalUrl),
+  ],
 );
 
 export const noteRevisions = pgTable(
@@ -246,6 +254,42 @@ export const noteAssociations = pgTable(
     uniqueIndex('note_associations_note_kb_idx').on(table.noteId, table.knowledgeBaseId),
     index('note_associations_kb_idx').on(table.knowledgeBaseId),
     index('note_associations_purge_idx').on(table.purgeAfter),
+  ],
+);
+
+export const captureAttempts = pgTable(
+  'capture_attempts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    knowledgeBaseId: uuid('knowledge_base_id')
+      .notNull()
+      .references(() => knowledgeBases.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    url: text('url').notNull(),
+    canonicalUrl: text('canonical_url'),
+    selectionHtml: text('selection_html'),
+    selectionText: text('selection_text'),
+    status: text('status').notNull(),
+    noteId: uuid('note_id').references(() => notes.id, { onDelete: 'set null' }),
+    revisionId: uuid('revision_id').references(() => noteRevisions.id, { onDelete: 'set null' }),
+    duplicateNoteId: uuid('duplicate_note_id').references(() => notes.id, { onDelete: 'set null' }),
+    duplicateTitle: text('duplicate_title'),
+    errorCode: text('error_code'),
+    errorDetail: text('error_detail'),
+    idempotencyKey: text('idempotency_key'),
+    mediaKeys: jsonb('media_keys').$type<string[]>().notNull().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex('capture_attempts_user_kb_key_idx')
+      .on(table.userId, table.knowledgeBaseId, table.idempotencyKey)
+      .where(sql`${table.idempotencyKey} is not null`),
+    index('capture_attempts_user_created_idx').on(table.userId, table.createdAt),
+    index('capture_attempts_kb_url_idx').on(table.knowledgeBaseId, table.canonicalUrl),
   ],
 );
 

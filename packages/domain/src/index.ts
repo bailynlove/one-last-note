@@ -1,4 +1,5 @@
 export * from './annotation';
+export * from './capture';
 export {
   buildReadinessReport,
   type DependencyCheck,

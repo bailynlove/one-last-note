@@ -9,7 +9,9 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@mozilla/readability": "^0.6.0",
     "@oln/domain": "workspace:*",
+    "linkedom": "^0.18.15",
     "markdown-it": "^15.0.3",
     "markdown-it-task-lists": "^2.1.1",
     "sanitize-html": "^2.18.1"
