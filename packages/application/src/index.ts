@@ -32,6 +32,23 @@ export {
   type StoredOwnershipTransfer,
 } from './knowledge-bases';
 export {
+  type AddRevisionInput,
+  type AttachAssociationInput,
+  type CreateNoteInput,
+  type DownloadedOriginal,
+  type MalwareScanner,
+  type NoteLogger,
+  NoteService,
+  type NoteServiceOptions,
+  type NoteStorage,
+  type NoteStore,
+  QuotaExceededError,
+  type RevisionQueue,
+  type StoredRevision,
+  type UploadOriginal,
+  UploadValidationError,
+} from './notes';
+export {
   CheckReadiness,
   type Probe,
   type ReadinessChecker,

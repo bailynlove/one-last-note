@@ -1,4 +1,11 @@
-import { CreateBucketCommand, HeadBucketCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  CreateBucketCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+  HeadBucketCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 
 export interface ObjectStorageOptions {
   endpoint: string;
@@ -45,6 +52,35 @@ export class ObjectStorage {
         abortSignal: AbortSignal.timeout(2_000),
       });
     }
+  }
+
+  async putObject(key: string, bytes: Uint8Array, contentType: string): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: bytes,
+        ContentType: contentType,
+      }),
+      { abortSignal: AbortSignal.timeout(30_000) },
+    );
+  }
+
+  async getObject(key: string): Promise<Uint8Array> {
+    const response = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      { abortSignal: AbortSignal.timeout(30_000) },
+    );
+    if (!response.Body) {
+      throw new Error(`Object ${key} has no body`);
+    }
+    return response.Body.transformToByteArray();
+  }
+
+  async deleteObject(key: string): Promise<void> {
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }), {
+      abortSignal: AbortSignal.timeout(5_000),
+    });
   }
 
   destroy(): void {

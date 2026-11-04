@@ -3,6 +3,7 @@ import {
   type AuthService,
   CheckReadiness,
   type KnowledgeBaseService,
+  type NoteService,
   type ReadinessChecker,
 } from '@oln/application';
 import { loadServerConfig, type ServerConfig } from '@oln/config';
@@ -80,6 +81,7 @@ export function startTestApi(
   options: {
     auth?: AuthService;
     knowledgeBases?: KnowledgeBaseService;
+    notes?: NoteService;
     trustProxy?: number;
     authProxySecret?: string;
   } = {},
@@ -89,6 +91,7 @@ export function startTestApi(
     readiness,
     auth: options.auth,
     knowledgeBases: options.knowledgeBases,
+    notes: options.notes,
     authProxySecret: options.authProxySecret,
     trustProxy: options.trustProxy,
   });

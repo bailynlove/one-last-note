@@ -11,7 +11,9 @@ import {
   type Member,
   pendingOwnershipTransfer,
 } from '../../../lib/knowledge-bases';
+import { formatBytes, listNotes } from '../../../lib/notes';
 import { readSessionToken } from '../../../lib/session';
+import { uploadNoteAction } from '../../notes/actions';
 import styles from '../../workspace.module.css';
 import {
   cancelOwnershipTransferAction,
@@ -82,6 +84,7 @@ export default async function KnowledgeBasePage({
 
   const canManage = knowledgeBase.role === 'owner' || knowledgeBase.role === 'manager';
   const isOwner = knowledgeBase.role === 'owner';
+  const notes = await listNotes(token, id);
   const [invitations, joinLinks, pendingTransfer] = await Promise.all([
     canManage ? listInvitations(token, id) : Promise.resolve(null),
     isOwner ? listJoinLinks(token, id) : Promise.resolve(null),
@@ -129,6 +132,11 @@ export default async function KnowledgeBasePage({
               </a>
             </li>
             <li>
+              <a className={styles.kbLink} href={`/knowledge-bases/${id}#notes`}>
+                Notes
+              </a>
+            </li>
+            <li>
               <a className={styles.kbLink} href={`/knowledge-bases/${id}#members`}>
                 Members
               </a>
@@ -158,6 +166,64 @@ export default async function KnowledgeBasePage({
             <p className={`${styles.notice} ${styles.error}`}>{query.error}</p>
           ) : null}
           {typeof query.saved === 'string' ? <p className={styles.notice}>Saved.</p> : null}
+
+          {notes.ok ? (
+            <section className={styles.card} id="notes">
+              <div className={styles.cardHeader}>
+                <h2 className={styles.cardTitle}>Notes</h2>
+                <span className={styles.badge}>{notes.data.length}</span>
+              </div>
+              {notes.data.length === 0 ? (
+                <p className={styles.empty}>
+                  No Notes yet. Upload a PDF, image, or text original to start.
+                </p>
+              ) : (
+                <ul className={styles.plainList}>
+                  {notes.data.map((note) => (
+                    <li key={note.id}>
+                      <a className={styles.textButton} href={`/notes/${note.id}`}>
+                        {note.title}
+                      </a>{' '}
+                      {note.latestRevision ? (
+                        <span className={styles.muted}>
+                          {note.latestRevision.originalFilename} ·{' '}
+                          {formatBytes(note.latestRevision.byteSize)} · {note.latestRevision.status}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {canManage ? (
+                <form
+                  action={uploadNoteAction}
+                  className={styles.form}
+                  encType="multipart/form-data"
+                >
+                  <input type="hidden" name="knowledgeBaseId" value={id} />
+                  <label className={styles.label}>
+                    Title (optional)
+                    <input className={styles.input} name="title" maxLength={200} />
+                  </label>
+                  <label className={styles.label}>
+                    Original
+                    <input
+                      className={styles.input}
+                      type="file"
+                      name="file"
+                      required
+                      accept=".pdf,.md,.markdown,.txt,.html,.htm,.png,.jpg,.jpeg,.gif,.webp"
+                    />
+                  </label>
+                  <button className={styles.button} type="submit">
+                    Upload Note
+                  </button>
+                </form>
+              ) : null}
+            </section>
+          ) : (
+            <p className={`${styles.notice} ${styles.error}`}>{notes.detail}</p>
+          )}
 
           {joinUrl && isOwner ? (
             <section className={styles.card}>

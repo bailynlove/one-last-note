@@ -49,6 +49,8 @@ export const serverEnvSchema = baseEnv
     AUTH_EMAIL_FROM: z.string().min(1).default('One Last Note <login@one-last-note.dev>'),
     GOOGLE_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+    CLAMAV_HOST: z.string().min(1).optional(),
+    CLAMAV_PORT: z.coerce.number().int().positive().max(65_535).default(3310),
   })
   .superRefine((value, context) => {
     if (Boolean(value.GOOGLE_CLIENT_ID) !== Boolean(value.GOOGLE_CLIENT_SECRET)) {

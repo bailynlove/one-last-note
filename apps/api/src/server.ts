@@ -1,19 +1,24 @@
-import { AuthService, CheckReadiness, KnowledgeBaseService } from '@oln/application';
+import { AuthService, CheckReadiness, KnowledgeBaseService, NoteService } from '@oln/application';
 import { loadServerConfig } from '@oln/config';
 import { GOOGLE_CALLBACK_PATH } from '@oln/domain';
 import {
   createAuthStore,
   createAuthThrottle,
+  createClamAvScanner,
   createDatabase,
+  createDevelopmentScanner,
   createGoogleProvider,
   createKnowledgeBaseEmailSender,
   createKnowledgeBaseStore,
   createLogger,
   createMagicLinkEmailSender,
+  createNoteRevisionQueue,
+  createNoteStore,
   createRedis,
   databaseProbe,
   objectStorageFromConfig,
   redisProbe,
+  storageAdapter,
   storageProbe,
 } from '@oln/infrastructure';
 import { buildApi } from './app';
@@ -33,6 +38,10 @@ if (config.NODE_ENV !== 'development' && config.NODE_ENV !== 'test' && !config.R
   logger.fatal('RESEND_API_KEY is required in production so magic links are not logged');
   process.exit(1);
 }
+if (config.NODE_ENV === 'production' && !config.CLAMAV_HOST) {
+  logger.fatal('CLAMAV_HOST is required in production');
+  process.exit(1);
+}
 const database = createDatabase({
   connectionString: config.DATABASE_URL,
   onError: (error) => logger.error({ err: error }, 'database pool error'),
@@ -41,6 +50,9 @@ const redis = createRedis(config.REDIS_URL, {
   onError: (error) => logger.warn({ err: error }, 'redis connection error'),
 });
 const storage = objectStorageFromConfig(config);
+const revisionQueue = createNoteRevisionQueue(config.REDIS_URL, (error) =>
+  logger.warn({ err: error }, 'revision queue connection error'),
+);
 const google =
   config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET
     ? createGoogleProvider({
@@ -73,10 +85,23 @@ const knowledgeBases = new KnowledgeBaseService({
   logger,
 });
 
+const notes = new NoteService({
+  store: createNoteStore(database),
+  storage: storageAdapter(storage),
+  scanner: config.CLAMAV_HOST
+    ? createClamAvScanner({ host: config.CLAMAV_HOST, port: config.CLAMAV_PORT })
+    : createDevelopmentScanner(),
+  queue: revisionQueue.revisions,
+  // Local development without a worker releases inline; deployed processing is queued.
+  processInline: !config.CLAMAV_HOST,
+  logger,
+});
+
 const app = buildApi({
   logger,
   auth,
   knowledgeBases,
+  notes,
   authProxySecret: config.AUTH_PROXY_SECRET,
   trustProxy: config.TRUST_PROXY_HOPS,
   readiness: new CheckReadiness([
@@ -114,6 +139,7 @@ async function shutdown(signal: string): Promise<void> {
       database.close(),
       (async () => redis.disconnect())(),
       (async () => storage.destroy())(),
+      revisionQueue.close(),
     ]);
 
     for (const result of results) {

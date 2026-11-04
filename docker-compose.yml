@@ -40,6 +40,12 @@ services:
     volumes:
       - storage-data:/data
 
+  clamav:
+    image: clamav/clamav:1.4
+    profiles: ["scanning"]
+    ports:
+      - "3310:3310"
+
 volumes:
   postgres-data:
   storage-data:

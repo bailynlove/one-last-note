@@ -9,6 +9,18 @@ export { auditEvents, authIdentities, magicLinkTokens, sessions, users } from '.
 export { createKnowledgeBaseEmailSender, createKnowledgeBaseStore } from './knowledge-bases';
 export { type CreateLoggerOptions, createLogger } from './logging';
 export {
+  createClamAvScanner,
+  createDevelopmentScanner,
+  createNoteRevisionQueue,
+  createNoteStore,
+  NOTE_REVISION_JOB,
+  NOTE_REVISION_QUEUE,
+  type NoteRevisionQueue,
+  noteRevisionQueue,
+  revisionQueueAdapter,
+  storageAdapter,
+} from './notes';
+export {
   HEARTBEAT_INTERVAL_MS,
   HEARTBEAT_JOB,
   processHeartbeat,

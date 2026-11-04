@@ -121,6 +121,25 @@ The web workspace lives at `/`, `/knowledge-bases/new`, `/knowledge-bases/[id]`,
 `/knowledge-bases`, `/invitations`, `/join-links`, and `/ownership-transfers` back the same
 commands.
 
+## Notes and Revisions
+
+Any Member can read Notes in their Knowledge Bases. Managers upload originals; replacing an
+original creates an immutable Revision shared by every Knowledge Base the Note is associated with.
+The current Revision only advances after quarantine and malware scanning succeed. Rejected attempts
+stay visible with a safe diagnostic, but their files cannot be downloaded.
+
+Limits: 25 MB per original, 5 GB of retained Revision data per Knowledge Base (counted once per
+association). Accepted originals are PDF, PNG, JPEG, GIF, WebP, Markdown, plain text, and HTML;
+archives, encrypted PDFs, mismatched file signatures, and invalid text are rejected. Set
+`CLAMAV_HOST` (and optionally `CLAMAV_PORT`) to scan uploads; without it, local development uses a
+clean no-op scanner. Production refuses to start without ClamAV. Start the optional local scanner
+with `docker compose --profile scanning up -d clamav`.
+
+The web workspace adds Notes to `/knowledge-bases/[id]` and `/notes/[id]`. API routes:
+`GET|POST /knowledge-bases/:id/notes`, `GET|PATCH /notes/:id`,
+`POST /notes/:id/revisions`, `POST /notes/:id/associations`, and
+`GET /notes/:id/revisions/:revisionId/original`.
+
 ## Health and readiness
 
 - `GET /health` on the API and web app is a liveness check.
@@ -141,7 +160,8 @@ docker run --env-file .env -e APP=api -p 4000:4000 one-last-note
 Set `APP` to `api`, `worker`, or `web` for each process. On Render, create one service per role,
 point each at its managed PostgreSQL, Redis, and Cloudflare R2 credentials, and run
 `pnpm db:migrate` as the release command. The storage bucket is created by `pnpm storage:init` or
-by the deployment runbook.
+by the deployment runbook. Set `CLAMAV_HOST` on the API and worker; the worker is the production
+scanning path.
 
 ## CI
 

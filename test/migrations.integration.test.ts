@@ -42,9 +42,16 @@ describe('database migrations', () => {
         'auth_identities',
         'magic_link_tokens',
         'sessions',
+        'knowledge_bases',
+        'knowledge_base_memberships',
+        'knowledge_base_invitations',
+        'join_links',
+        'ownership_transfers',
+        'notes',
+        'note_revisions',
+        'note_associations',
       ]),
     );
-    expect(names).not.toContain('notes');
 
     const columns = await database.db.execute<{ column_name: string; data_type: string }>(
       sql`select column_name, data_type from information_schema.columns where table_name = 'audit_event'`,

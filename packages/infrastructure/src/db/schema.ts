@@ -1,5 +1,15 @@
 import { sql } from 'drizzle-orm';
-import { index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import {
+  bigint,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -160,6 +170,69 @@ export const ownershipTransfers = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index('ownership_transfers_to_user_idx').on(table.toUserId)],
+);
+
+export const notes = pgTable(
+  'notes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    title: text('title').notNull(),
+    currentRevisionId: uuid('current_revision_id'),
+    createdByUserId: uuid('created_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('notes_created_by_idx').on(table.createdByUserId)],
+);
+
+export const noteRevisions = pgTable(
+  'note_revisions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    noteId: uuid('note_id')
+      .notNull()
+      .references(() => notes.id, { onDelete: 'cascade' }),
+    revisionNumber: integer('revision_number').notNull(),
+    originalFilename: text('original_filename').notNull(),
+    mediaType: text('media_type').notNull(),
+    byteSize: bigint('byte_size', { mode: 'number' }).notNull(),
+    contentHash: text('content_hash').notNull(),
+    storageKey: text('storage_key').notNull(),
+    status: text('status').notNull(),
+    statusDetail: text('status_detail'),
+    uploadedByUserId: uuid('uploaded_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    processedAt: timestamp('processed_at', { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex('note_revisions_note_number_idx').on(table.noteId, table.revisionNumber),
+    index('note_revisions_note_idx').on(table.noteId),
+  ],
+);
+
+export const noteAssociations = pgTable(
+  'note_associations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    noteId: uuid('note_id')
+      .notNull()
+      .references(() => notes.id, { onDelete: 'cascade' }),
+    knowledgeBaseId: uuid('knowledge_base_id')
+      .notNull()
+      .references(() => knowledgeBases.id, { onDelete: 'cascade' }),
+    createdByUserId: uuid('created_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('note_associations_note_kb_idx').on(table.noteId, table.knowledgeBaseId),
+    index('note_associations_kb_idx').on(table.knowledgeBaseId),
+  ],
 );
 
 export const auditEvents = pgTable(

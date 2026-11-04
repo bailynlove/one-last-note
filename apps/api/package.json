@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@fastify/multipart": "^10.1.7",
     "@oln/application": "workspace:*",
     "@oln/config": "workspace:*",
     "@oln/domain": "workspace:*",

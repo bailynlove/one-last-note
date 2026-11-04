@@ -40,10 +40,11 @@ function clientIpHeader(value: string | null | undefined): string | undefined {
   return value?.split(',')[0]?.trim() || undefined;
 }
 
-async function authRequest(
+export async function authRequest(
   path: string,
   init: RequestInit = {},
   forwardedFor?: string | null,
+  timeoutMs?: number,
 ): Promise<Response> {
   const config = loadWebConfig();
   const headers = new Headers(init.headers);
@@ -55,7 +56,7 @@ async function authRequest(
 
   return fetch(new URL(path, config.API_BASE_URL), {
     cache: 'no-store',
-    signal: AbortSignal.timeout(config.API_REQUEST_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs ?? config.API_REQUEST_TIMEOUT_MS),
     ...init,
     headers,
   });

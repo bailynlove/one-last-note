@@ -1,17 +1,30 @@
 import { randomUUID } from 'node:crypto';
 import { STATUS_CODES } from 'node:http';
-import type { AuthService, KnowledgeBaseService, ReadinessChecker } from '@oln/application';
-import { AppError, AuthThrottleError } from '@oln/application';
-import type { ReadinessReport, ServiceHealth } from '@oln/domain';
+import multipart from '@fastify/multipart';
+import type {
+  AuthService,
+  KnowledgeBaseService,
+  NoteService,
+  ReadinessChecker,
+} from '@oln/application';
+import {
+  AppError,
+  AuthThrottleError,
+  QuotaExceededError,
+  UploadValidationError,
+} from '@oln/application';
+import { MAX_ORIGINAL_BYTES, type ReadinessReport, type ServiceHealth } from '@oln/domain';
 import Fastify, { type FastifyBaseLogger, type FastifyError, type FastifyInstance } from 'fastify';
 import { registerAuthRoutes } from './auth';
 import { registerKnowledgeBaseRoutes } from './knowledge-bases';
+import { registerNoteRoutes } from './notes';
 
 export interface BuildApiOptions {
   logger: FastifyBaseLogger;
   readiness: ReadinessChecker;
   auth?: AuthService;
   knowledgeBases?: KnowledgeBaseService;
+  notes?: NoteService;
   authProxySecret?: string;
   trustProxy?: number;
   now?: () => Date;
@@ -22,6 +35,7 @@ export function buildApi({
   readiness,
   auth,
   knowledgeBases,
+  notes,
   authProxySecret,
   trustProxy = 0,
   now = () => new Date(),
@@ -69,6 +83,23 @@ export function buildApi({
   });
 
   app.setErrorHandler((error: FastifyError, request, reply) => {
+    if (error instanceof UploadValidationError || error instanceof QuotaExceededError) {
+      const status = error instanceof QuotaExceededError ? 413 : 422;
+      request.log.warn({ err: error }, 'upload rejected');
+      reply
+        .status(status)
+        .type('application/problem+json')
+        .send({
+          type: `https://one-last-note.dev/problems/${status}`,
+          title: error instanceof QuotaExceededError ? 'Storage quota exceeded' : 'Upload rejected',
+          status,
+          detail: error.message,
+          code: error.code,
+          instance: request.url,
+        });
+      return;
+    }
+
     const status = error instanceof AppError ? error.status : (error.statusCode ?? 500);
     const clientSafe = status < 500;
     const title =
@@ -106,6 +137,10 @@ export function buildApi({
   }
   if (auth && knowledgeBases) {
     registerKnowledgeBaseRoutes(app, auth, knowledgeBases);
+  }
+  if (auth && notes) {
+    app.register(multipart, { limits: { fileSize: MAX_ORIGINAL_BYTES, files: 1 } });
+    registerNoteRoutes(app, auth, notes);
   }
 
   return app;
