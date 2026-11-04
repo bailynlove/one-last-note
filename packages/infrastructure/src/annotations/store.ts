@@ -30,6 +30,7 @@ function toAnnotation(row: AnnotationRow, author: UserRow): Annotation {
     },
     kind: row.kind === 'mark' ? 'mark' : 'comment',
     markType: row.markType,
+    payload: row.payload,
     body: row.body,
     anchor: row.anchor,
     needsReview: row.needsReview,
@@ -64,6 +65,22 @@ export function createAnnotationStore(database: Database): AnnotationStore {
   }
 
   return {
+    async findKnowledgeBaseRole(knowledgeBaseId, userId) {
+      const [row] = await db
+        .select({ role: knowledgeBaseMemberships.role })
+        .from(knowledgeBaseMemberships)
+        .innerJoin(knowledgeBases, eq(knowledgeBases.id, knowledgeBaseMemberships.knowledgeBaseId))
+        .where(
+          and(
+            eq(knowledgeBaseMemberships.knowledgeBaseId, knowledgeBaseId),
+            eq(knowledgeBaseMemberships.userId, userId),
+            isNull(knowledgeBases.deletedAt),
+          ),
+        )
+        .limit(1);
+      return row ? { role: row.role as KnowledgeBaseRole } : null;
+    },
+
     async findAccess(knowledgeBaseId, noteId, userId) {
       const [row] = await db
         .select({ role: knowledgeBaseMemberships.role })
@@ -130,6 +147,7 @@ export function createAnnotationStore(database: Database): AnnotationStore {
           authorUserId: input.authorUserId,
           kind: input.kind,
           markType: input.markType,
+          payload: input.payload,
           body: input.body,
           anchor: input.anchor,
           createdAt: input.now,

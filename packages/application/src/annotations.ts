@@ -4,8 +4,10 @@ import {
   HIGHLIGHT_MARK_TYPE,
   isMarkType,
   type KnowledgeBaseRole,
+  type MarkTypeDescriptor,
 } from '@oln/domain';
 import { AppError } from './errors';
+import { type MarkTypeReader, markTypesFor, validateMarkPayload } from './mark-types';
 
 const MAX_BODY_LENGTH = 4_000;
 const MAX_EXACT_LENGTH = 2_000;
@@ -16,6 +18,10 @@ export interface AnnotationStore {
   findAccess(
     knowledgeBaseId: string,
     noteId: string,
+    userId: string,
+  ): Promise<{ role: KnowledgeBaseRole } | null>;
+  findKnowledgeBaseRole(
+    knowledgeBaseId: string,
     userId: string,
   ): Promise<{ role: KnowledgeBaseRole } | null>;
   hasRevision(noteId: string, revisionId: string): Promise<boolean>;
@@ -29,6 +35,7 @@ export interface AnnotationStore {
     authorUserId: string;
     kind: 'comment' | 'mark';
     markType: string | null;
+    payload: Record<string, unknown> | null;
     body: string | null;
     anchor: AnnotationAnchor;
     now: Date;
@@ -56,6 +63,7 @@ export interface AnnotationStore {
 export interface AnnotationServiceOptions {
   store: AnnotationStore;
   noteText?: (userId: string, noteId: string, revisionId: string) => Promise<string | null>;
+  markTypes?: MarkTypeReader;
   now?: () => Date;
 }
 
@@ -64,6 +72,7 @@ export interface CreateAnnotationInput {
   kind: 'comment' | 'mark';
   body?: string | null;
   markType?: string | null;
+  payload?: unknown;
   anchor: unknown;
 }
 
@@ -108,6 +117,17 @@ export function reanchorText(anchor: AnnotationAnchor, text: string): Annotation
 
 function fail(message: string, status = 400, title = 'Invalid annotation'): never {
   throw new AppError(message, { status, title });
+}
+
+function readPayload(value: unknown): Record<string, unknown> {
+  if (value === undefined || value === null) return {};
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    throw new AppError('Mark payload must be an object.', {
+      status: 422,
+      title: 'Invalid Mark payload',
+    });
+  }
+  return value as Record<string, unknown>;
 }
 
 function readBody(value: string | null | undefined): string {
@@ -259,6 +279,18 @@ export class AnnotationService {
     return roots.filter((root) => !root.deleted || root.replies.length > 0);
   }
 
+  async listMarkTypes(userId: string, knowledgeBaseId: string): Promise<MarkTypeDescriptor[]> {
+    const access = await this.options.store.findKnowledgeBaseRole(knowledgeBaseId, userId);
+    if (!access) fail('This Knowledge Base is not available.', 404, 'Not found');
+    return markTypesFor(
+      this.options.markTypes ? await this.options.markTypes.markTypes(userId, knowledgeBaseId) : [],
+    );
+  }
+
+  private async markTypes(userId: string, knowledgeBaseId: string): Promise<MarkTypeDescriptor[]> {
+    return this.listMarkTypes(userId, knowledgeBaseId);
+  }
+
   async create(
     user: { id: string },
     knowledgeBaseId: string,
@@ -280,6 +312,7 @@ export class AnnotationService {
         authorUserId: user.id,
         kind,
         markType: null,
+        payload: null,
         body: readBody(input.body),
         anchor,
         now: this.now(),
@@ -289,6 +322,12 @@ export class AnnotationService {
       if (input.body?.trim()) fail('Marks cannot contain comment text.');
       const markType = input.markType ?? HIGHLIGHT_MARK_TYPE;
       if (!isMarkType(markType)) fail('Mark types use a namespaced name, e.g. core/highlight.');
+      const definitions = await this.markTypes(user.id, knowledgeBaseId);
+      const definition = definitions.find((item) => item.type === markType);
+      if (!definition) fail('That Mark type is not available in this Knowledge Base.', 422);
+      const payload = readPayload(input.payload ?? definition.defaultPayload);
+      const error = validateMarkPayload(definition, payload);
+      if (error) fail(error, 422, 'Invalid Mark payload');
       return this.options.store.create({
         knowledgeBaseId,
         noteId,
@@ -297,6 +336,7 @@ export class AnnotationService {
         authorUserId: user.id,
         kind,
         markType,
+        payload,
         body: null,
         anchor,
         now: this.now(),
@@ -325,6 +365,7 @@ export class AnnotationService {
       authorUserId: user.id,
       kind: 'comment',
       markType: null,
+      payload: null,
       body: readBody(body),
       anchor: parent.anchor,
       now: this.now(),

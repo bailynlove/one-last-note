@@ -1,4 +1,4 @@
-import type { Annotation, AnnotationAnchor } from '@oln/domain';
+import type { Annotation, AnnotationAnchor, MarkTypeDescriptor } from '@oln/domain';
 import { z } from 'zod';
 import { authRequest } from './auth';
 
@@ -36,6 +36,7 @@ const fields = {
   author: authorSchema,
   kind: z.enum(['comment', 'mark']),
   markType: z.string().nullable(),
+  payload: z.record(z.string(), z.unknown()).nullable(),
   body: z.string().nullable(),
   anchor: z.union([textAnchorSchema, pdfAnchorSchema]),
   needsReview: z.boolean(),
@@ -105,6 +106,8 @@ export function createAnnotation(
     revisionId: string;
     kind: 'comment' | 'mark';
     body?: string;
+    markType?: string;
+    payload?: Record<string, unknown>;
     anchor: AnnotationAnchor & { source?: string };
   },
 ) {
@@ -116,6 +119,8 @@ export function createAnnotation(
       revisionId: input.revisionId,
       kind: input.kind,
       body: input.body,
+      markType: input.markType,
+      payload: input.payload,
       anchor,
     }),
   });
@@ -170,3 +175,15 @@ export async function deleteAnnotation(
 }
 
 export type { Annotation };
+
+export async function listMarkTypes(
+  token: string,
+  knowledgeBaseId: string,
+): Promise<AnnotationApiResult<MarkTypeDescriptor[]>> {
+  const result = await api(
+    z.object({ markTypes: z.array(z.any()) }),
+    `/knowledge-bases/${knowledgeBaseId}/mark-types`,
+    token,
+  );
+  return result.ok ? { ok: true, data: result.data.markTypes as MarkTypeDescriptor[] } : result;
+}

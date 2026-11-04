@@ -16,6 +16,7 @@ const createBody = z.object({
   kind: z.enum(['comment', 'mark']),
   body: z.string().nullable().optional(),
   markType: z.string().min(1).max(100).optional(),
+  payload: z.unknown().optional(),
   anchor: z.unknown(),
 });
 const replyBody = z.object({ body: z.string() });

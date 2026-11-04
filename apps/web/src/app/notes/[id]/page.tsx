@@ -1,10 +1,17 @@
 import { renderRevision } from '@oln/application';
-import type { RendererResult } from '@oln/domain';
+import {
+  type AppExtensionInstallation,
+  type RendererContribution,
+  type RendererResult,
+  supportsRevision,
+} from '@oln/domain';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
+import { ExtensionRenderer } from '../../../components/ExtensionRenderer';
 import { PdfViewerClient } from '../../../components/PdfViewerClient';
 import { ReaderSelection } from '../../../components/ReaderSelection';
-import { listAnnotations } from '../../../lib/annotations';
+import { listAnnotations, listMarkTypes } from '../../../lib/annotations';
+import { listAppExtensions } from '../../../lib/app-extensions';
 import { fetchSessionUser } from '../../../lib/auth';
 import { listKnowledgeBases } from '../../../lib/knowledge-bases';
 import { fetchRevisionBytes, formatBytes, getNote } from '../../../lib/notes';
@@ -149,6 +156,29 @@ export default async function NotePage({
     ? `/knowledge-bases/${contextAssociation.knowledgeBaseId}#notes`
     : '/';
   const contextQuery = contextAssociation ? `&kb=${contextAssociation.knowledgeBaseId}` : '';
+  let extensionData: {
+    installation: AppExtensionInstallation;
+    renderer: RendererContribution;
+    bytes: Uint8Array;
+  } | null = null;
+  if (selected?.status === 'ready' && contextAssociation && query.builtin !== '1') {
+    const extensions = await listAppExtensions(token, contextAssociation.knowledgeBaseId);
+    if (extensions.ok) {
+      for (const installation of extensions.data) {
+        if (!installation.enabled) continue;
+        const renderer = installation.manifest.renderers.find((item) =>
+          supportsRevision(item, selected.originalFilename, selected.mediaType),
+        );
+        if (!renderer) continue;
+        const bytes = await fetchRevisionBytes(token, note.data.id, selected.id);
+        if (bytes.ok) extensionData = { installation, renderer, bytes: bytes.data };
+        break;
+      }
+    }
+  }
+  const markTypes = contextAssociation
+    ? await listMarkTypes(token, contextAssociation.knowledgeBaseId)
+    : { ok: false as const, detail: '' };
   const annotationsResult =
     contextAssociation && selected
       ? await listAnnotations(
@@ -256,6 +286,7 @@ export default async function NotePage({
               new Map(note.data.revisions.map((revision) => [revision.id, revision.revisionNumber]))
             }
             canModerate={canModerateContext}
+            markTypes={markTypes.ok ? markTypes.data : []}
           >
             <div className={styles.readerToolbar}>
               <div className={styles.revisionTabs}>
@@ -283,7 +314,21 @@ export default async function NotePage({
             </div>
 
             <div data-reader-content>
-              {!selected ? (
+              {extensionData ? (
+                <ExtensionRenderer
+                  installation={extensionData.installation}
+                  renderer={extensionData.renderer}
+                  bytes={extensionData.bytes}
+                  filename={selected?.originalFilename ?? 'original'}
+                  mediaType={selected?.mediaType ?? 'application/octet-stream'}
+                  downloadHref={downloadHref ?? '#'}
+                  builtinHref={`?${new URLSearchParams({
+                    ...(selected ? { revision: selected.id } : {}),
+                    ...(contextAssociation ? { kb: contextAssociation.knowledgeBaseId } : {}),
+                    builtin: '1',
+                  }).toString()}`}
+                />
+              ) : !selected ? (
                 <p className={styles.notice}>
                   {note.data.revisions.length === 0
                     ? 'This Note has no Revisions yet.'

@@ -3,8 +3,9 @@ export type AnnotationKind = (typeof ANNOTATION_KINDS)[number];
 
 export const HIGHLIGHT_MARK_TYPE = 'core/highlight';
 export const MARK_TYPE_PATTERN = /^[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*$/;
+export const EXTENSION_MARK_TYPE_PATTERN = /^[a-z0-9-]+\.[a-z0-9-]+:[a-z][a-z0-9-]*$/;
 export function isMarkType(value: string): boolean {
-  return MARK_TYPE_PATTERN.test(value);
+  return MARK_TYPE_PATTERN.test(value) || EXTENSION_MARK_TYPE_PATTERN.test(value);
 }
 
 export interface TextAnchor {
@@ -42,6 +43,7 @@ export interface Annotation {
   author: AnnotationAuthor;
   kind: AnnotationKind;
   markType: string | null;
+  payload: Record<string, unknown> | null;
   body: string | null;
   anchor: AnnotationAnchor;
   needsReview: boolean;

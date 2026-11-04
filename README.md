@@ -216,6 +216,28 @@ POST   /knowledge-bases/:id/relations
 DELETE /knowledge-bases/:id/relations/:relationId
 ```
 
+## App Extensions
+
+Owners and Managers can install pinned App Extension packages for one Knowledge Base at `/knowledge-bases/[id]/extensions`. A package is a strict manifest plus text files: namespaced ID, semantic version, API version, publisher, Renderer contributions (extensions, MIME types, entry), Mark contributions, and declared permissions. The host shows the package SHA-256 and keeps every version installable, so an update can be reviewed and rolled back without touching other Knowledge Bases.
+
+Third-party Renderer code runs in a sandboxed iframe with an opaque origin (`sandbox="allow-scripts"`), no cookies/storage/DOM access, and a CSP that blocks network, frames, forms, and external assets. The host sends the selected Revision bytes through `postMessage`; the extension can report navigation, height, diagnostics, and Anchor candidates back. Renderer failure or a missing package falls back to the built-in renderer or original download. Installation, enable/disable, rollback, and removal require a Manager or Owner; Viewers can use installed Renderers.
+
+### Mark registry
+
+Every Knowledge Base exposes `GET /knowledge-bases/:id/mark-types`. The response is host-generated and contains the built-in `core/highlight` definition plus the Mark types from the enabled App Extension versions. Each descriptor includes its label, JSON payload schema, default payload, source, extension ID/version, and supported operations, so the hosted MCP server can discover custom Marks without an extension running its own server.
+
+Annotations store the Mark type and validated payload. If an extension is disabled, removed, downgraded, or its schema changes, existing annotations are still returned with their original type and payload; clients show a type fallback instead of discarding data. New writes are validated against the currently enabled definition.
+
+API:
+
+```text
+GET    /knowledge-bases/:id/extensions
+GET    /knowledge-bases/:id/mark-types
+POST   /knowledge-bases/:id/extensions
+PATCH  /knowledge-bases/:id/extensions/:installationId
+DELETE /knowledge-bases/:id/extensions/:installationId
+```
+
 ## Health and readiness
 
 - `GET /health` on the API and web app is a liveness check.

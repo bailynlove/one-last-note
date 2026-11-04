@@ -1,4 +1,4 @@
-import type { AnnotationAnchor } from '@oln/domain';
+import type { AnnotationAnchor, AppExtensionManifest } from '@oln/domain';
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
@@ -345,6 +345,7 @@ export const annotations = pgTable(
       .references(() => users.id, { onDelete: 'restrict' }),
     kind: text('kind').notNull(),
     markType: text('mark_type'),
+    payload: jsonb('payload').$type<Record<string, unknown> | null>(),
     body: text('body'),
     anchor: jsonb('anchor').$type<AnnotationAnchor>().notNull(),
     needsReview: boolean('needs_review').notNull().default(false),
@@ -395,6 +396,41 @@ export const extensionRefreshTokens = pgTable(
   (table) => [
     index('extension_refresh_tokens_user_idx').on(table.userId),
     index('extension_refresh_tokens_expires_idx').on(table.expiresAt),
+  ],
+);
+
+export const appExtensions = pgTable(
+  'app_extensions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    knowledgeBaseId: uuid('knowledge_base_id')
+      .notNull()
+      .references(() => knowledgeBases.id, { onDelete: 'cascade' }),
+    extensionId: text('extension_id').notNull(),
+    name: text('name').notNull(),
+    version: text('version').notNull(),
+    apiVersion: integer('api_version').notNull(),
+    publisher: text('publisher').notNull(),
+    packageHash: text('package_hash').notNull(),
+    source: text('source').notNull(),
+    manifest: jsonb('manifest').$type<AppExtensionManifest>().notNull(),
+    files: jsonb('files').$type<Record<string, string>>().notNull().default({}),
+    enabled: boolean('enabled').notNull().default(false),
+    installedByUserId: uuid('installed_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('app_extensions_version_idx').on(
+      table.knowledgeBaseId,
+      table.extensionId,
+      table.version,
+    ),
+    uniqueIndex('app_extensions_enabled_idx')
+      .on(table.knowledgeBaseId, table.extensionId)
+      .where(sql`${table.enabled}`),
+    index('app_extensions_knowledge_base_idx').on(table.knowledgeBaseId),
   ],
 );
 

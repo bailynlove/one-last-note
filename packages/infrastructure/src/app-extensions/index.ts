@@ -1,0 +1,1 @@
+export { createAppExtensionStore } from './store';

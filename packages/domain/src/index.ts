@@ -1,4 +1,5 @@
 export * from './annotation';
+export * from './app-extension';
 export * from './capture';
 export * from './extension-auth';
 export {
@@ -26,6 +27,7 @@ export {
   type OwnershipTransfer,
 } from './knowledge-base';
 export * from './lifecycle';
+export * from './mark';
 export * from './note';
 export * from './relation';
 export * from './renderer';

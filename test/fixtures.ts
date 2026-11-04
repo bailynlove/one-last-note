@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   type AnnotationService,
+  type AppExtensionService,
   type AuthService,
   type CaptureService,
   CheckReadiness,
@@ -92,6 +93,7 @@ export function startTestApi(
     captures?: CaptureService;
     extensionAuth?: ExtensionAuthService;
     relations?: RelationService;
+    appExtensions?: AppExtensionService;
     trustProxy?: number;
     authProxySecret?: string;
   } = {},
@@ -107,6 +109,7 @@ export function startTestApi(
     captures: options.captures,
     extensionAuth: options.extensionAuth,
     relations: options.relations,
+    appExtensions: options.appExtensions,
     authProxySecret: options.authProxySecret,
     trustProxy: options.trustProxy,
   });

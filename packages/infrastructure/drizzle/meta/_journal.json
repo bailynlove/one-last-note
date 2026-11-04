@@ -71,6 +71,20 @@
       "when": 1793794696289,
       "tag": "0009_elite_talon",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793798077510,
+      "tag": "0010_quiet_mother_askani",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793799003549,
+      "tag": "0011_tiny_odin",
+      "breakpoints": true
     }
   ]
 }

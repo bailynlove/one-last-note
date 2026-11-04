@@ -1,4 +1,5 @@
 export { createAnnotationStore } from './annotations';
+export * from './app-extensions';
 export { createMagicLinkEmailSender } from './auth/email';
 export { createGoogleProvider } from './auth/google';
 export { createAuthStore } from './auth/store';

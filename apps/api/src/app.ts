@@ -3,6 +3,7 @@ import { STATUS_CODES } from 'node:http';
 import multipart from '@fastify/multipart';
 import type {
   AnnotationService,
+  AppExtensionService,
   AuthService,
   CaptureService,
   ExtensionAuthService,
@@ -21,6 +22,7 @@ import {
 import { MAX_ORIGINAL_BYTES, type ReadinessReport, type ServiceHealth } from '@oln/domain';
 import Fastify, { type FastifyBaseLogger, type FastifyError, type FastifyInstance } from 'fastify';
 import { registerAnnotationRoutes } from './annotations';
+import { registerAppExtensionRoutes } from './app-extensions';
 import { registerAuthRoutes } from './auth';
 import { registerCaptureRoutes } from './captures';
 import { registerExtensionAuthRoutes } from './extension-auth';
@@ -37,6 +39,7 @@ export interface BuildApiOptions {
   notes?: NoteService;
   relations?: RelationService;
   annotations?: AnnotationService;
+  appExtensions?: AppExtensionService;
   lifecycle?: LifecycleService;
   captures?: CaptureService;
   extensionAuth?: ExtensionAuthService;
@@ -53,6 +56,7 @@ export function buildApi({
   notes,
   relations,
   annotations,
+  appExtensions,
   lifecycle,
   captures,
   extensionAuth,
@@ -170,6 +174,9 @@ export function buildApi({
   }
   if (auth && annotations) {
     registerAnnotationRoutes(app, auth, annotations);
+  }
+  if (auth && appExtensions) {
+    registerAppExtensionRoutes(app, auth, appExtensions);
   }
   if (auth && captures) {
     registerCaptureRoutes(app, auth, captures);

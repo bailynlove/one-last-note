@@ -881,3 +881,30 @@
 .edgeDim {
   opacity: 0.18;
 }
+
+.extensionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.extensionForm {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.extensionForm textarea {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+.inlineActions {
+  display: inline-flex;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+}
+
+.extensionVersions h3 {
+  margin: 0.75rem 0 0.4rem;
+  font-size: 0.95rem;
+}

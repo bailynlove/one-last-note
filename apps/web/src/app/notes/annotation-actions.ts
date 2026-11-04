@@ -52,6 +52,7 @@ export async function createAnnotationAction(formData: FormData): Promise<void> 
     revisionId,
     kind,
     body: field(formData, 'body'),
+    markType: field(formData, 'markType') || undefined,
     anchor,
   });
   if (!result.ok) {

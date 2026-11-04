@@ -1,6 +1,6 @@
 'use client';
 
-import type { Annotation } from '@oln/domain';
+import type { Annotation, MarkTypeDescriptor } from '@oln/domain';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import {
   createAnnotationAction,
@@ -152,6 +152,7 @@ function AnnotationCard({
   onSelect,
   viewerId,
   canModerate,
+  markTypes,
 }: {
   annotation: Annotation;
   knowledgeBaseId: string;
@@ -162,6 +163,7 @@ function AnnotationCard({
   onSelect: () => void;
   viewerId: string;
   canModerate: boolean;
+  markTypes: MarkTypeDescriptor[];
 }) {
   const isAuthor = annotation.author.id === viewerId;
   const canEdit = annotation.kind === 'comment' && !annotation.deleted && isAuthor;
@@ -205,7 +207,11 @@ function AnnotationCard({
           : `Page ${annotation.anchor.page}`}
       </blockquote>
       {annotation.kind === 'mark' ? (
-        <p className={styles.markBadge}>{annotation.markType ?? 'Highlight'}</p>
+        <p className={styles.markBadge}>
+          {markTypes.find((item) => item.type === annotation.markType)?.label ??
+            annotation.markType ??
+            'Highlight'}
+        </p>
       ) : annotation.deleted ? (
         <p className={styles.muted}>This Comment was deleted.</p>
       ) : (
@@ -315,6 +321,7 @@ export function ReaderSelection({
   viewerId,
   canModerate,
   revisionNumbers,
+  markTypes = [],
 }: {
   children: ReactNode;
   revisionNumber?: number;
@@ -328,6 +335,7 @@ export function ReaderSelection({
   viewerId: string;
   canModerate: boolean;
   revisionNumbers: Map<string, number>;
+  markTypes?: MarkTypeDescriptor[];
 }) {
   const stageRef = useRef<HTMLElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -485,7 +493,10 @@ export function ReaderSelection({
                     type="button"
                     onClick={() => focusAnnotation(item)}
                   >
-                    {item.kind === 'mark' ? 'Highlight' : 'Comment'} · {item.author.displayName}
+                    {item.kind === 'mark'
+                      ? (markTypes.find((type) => type.type === item.markType)?.label ?? 'Mark')
+                      : 'Comment'}{' '}
+                    · {item.author.displayName}
                     {item.deleted ? ' · deleted' : ''}
                   </button>
                 ))}
@@ -501,10 +512,23 @@ export function ReaderSelection({
                   className={styles.input}
                   name="body"
                   ref={bodyRef}
-                  placeholder="Comment on this passage (clear for a Highlight)"
+                  placeholder="Comment on this passage (clear to add a Mark)"
                   maxLength={4000}
                   rows={3}
                 />
+                {markTypes.length > 0 ? (
+                  <label className={styles.field}>
+                    Mark type
+                    <select className={styles.input} name="markType" defaultValue="core/highlight">
+                      {markTypes.map((type) => (
+                        <option key={type.type} value={type.type}>
+                          {type.label}
+                          {type.source === 'extension' ? ' (extension)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
                 <div className={styles.annotationButtons}>
                   <button className={styles.button} name="kind" value="comment" type="submit">
                     Add Comment
@@ -518,7 +542,7 @@ export function ReaderSelection({
                       if (bodyRef.current) bodyRef.current.value = '';
                     }}
                   >
-                    Highlight
+                    Add Mark
                   </button>
                 </div>
               </form>
@@ -546,6 +570,7 @@ export function ReaderSelection({
                 onSelect={() => focusAnnotation(annotation)}
                 viewerId={viewerId}
                 canModerate={canModerate}
+                markTypes={markTypes}
                 revisionNumber={revisionNumbers.get(annotation.revisionId)}
               />
             ))}

@@ -50,6 +50,12 @@ describe('database migrations', () => {
         'notes',
         'note_revisions',
         'note_associations',
+        'app_extensions',
+        'note_relations',
+        'annotations',
+        'capture_attempts',
+        'extension_auth_codes',
+        'extension_refresh_tokens',
       ]),
     );
 

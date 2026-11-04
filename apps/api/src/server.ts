@@ -1,5 +1,6 @@
 import {
   AnnotationService,
+  AppExtensionService,
   AuthService,
   CaptureService,
   CheckReadiness,
@@ -14,6 +15,7 @@ import { GOOGLE_CALLBACK_PATH } from '@oln/domain';
 import {
   captureQueueAdapter,
   createAnnotationStore,
+  createAppExtensionStore,
   createAuthStore,
   createAuthThrottle,
   createCaptureQueue,
@@ -144,6 +146,10 @@ const captures = new CaptureService({
   logger,
 });
 
+const appExtensions = new AppExtensionService({
+  store: createAppExtensionStore(database),
+});
+
 const app = buildApi({
   logger,
   auth,
@@ -153,9 +159,11 @@ const app = buildApi({
   captures,
   extensionAuth,
   relations,
+  appExtensions,
   annotations: new AnnotationService({
     store: createAnnotationStore(database),
     noteText: (userId, noteId, revisionId) => notes.revisionText(userId, noteId, revisionId),
+    markTypes: appExtensions,
   }),
   authProxySecret: config.AUTH_PROXY_SECRET,
   trustProxy: config.TRUST_PROXY_HOPS,

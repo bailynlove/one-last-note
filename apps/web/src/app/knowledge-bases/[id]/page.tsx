@@ -150,6 +150,11 @@ export default async function KnowledgeBasePage({
                 Members
               </a>
             </li>
+            <li>
+              <a className={styles.kbLink} href={`/knowledge-bases/${id}/extensions`}>
+                App Extensions
+              </a>
+            </li>
             {canManage ? (
               <li>
                 <a className={styles.kbLink} href={`/knowledge-bases/${id}#invitations`}>
@@ -180,6 +185,9 @@ export default async function KnowledgeBasePage({
           <p className={styles.pageHeaderActions}>
             <a className={styles.secondaryButton} href={`/knowledge-bases/${id}/relations`}>
               Open Relations
+            </a>
+            <a className={styles.secondaryButton} href={`/knowledge-bases/${id}/extensions`}>
+              App Extensions
             </a>
           </p>
 

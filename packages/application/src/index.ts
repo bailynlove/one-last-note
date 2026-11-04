@@ -6,6 +6,7 @@ export {
   type CreateAnnotationInput,
   reanchorText,
 } from './annotations';
+export * from './app-extensions';
 export {
   AUTH_THROTTLE_LIMIT,
   AUTH_THROTTLE_WINDOW_SECONDS,
@@ -82,6 +83,7 @@ export {
   type LifecycleServiceOptions,
   type LifecycleStore,
 } from './lifecycle';
+export * from './mark-types';
 export {
   type AddRevisionInput,
   type AttachAssociationInput,
