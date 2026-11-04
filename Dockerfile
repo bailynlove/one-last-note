@@ -23,6 +23,7 @@ RUN pnpm --filter @oln/web build
 
 FROM base AS runtime
 ENV NODE_ENV=production
+RUN apk add --no-cache postgresql-client
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps ./apps
 COPY --from=deps /app/packages ./packages

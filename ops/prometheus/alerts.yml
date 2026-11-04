@@ -47,3 +47,5 @@ groups:
         for: 2m
         labels: { severity: page }
         annotations: { summary: Readiness probe has failed for 2 minutes }
+
+# Backup freshness is monitored by the Render Cron failure notification and BACKUP_ALERT_WEBHOOK_URL.

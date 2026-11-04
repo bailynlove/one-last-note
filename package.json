@@ -21,7 +21,9 @@
     "services:up": "docker compose up -d --wait",
     "services:down": "docker compose down",
     "smoke": "node scripts/smoke.mjs",
-    "test:saver": "xvfb-run -a node scripts/saver-e2e.mjs"
+    "test:saver": "xvfb-run -a node scripts/saver-e2e.mjs",
+    "backup": "pnpm --filter @oln/infrastructure backup",
+    "restore": "pnpm --filter @oln/infrastructure restore"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",

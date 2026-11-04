@@ -72,3 +72,8 @@ worker outcomes. The runbook owns threshold changes; do not tune alert threshold
    offending User; do not raise limits without an issue.
 5. If retention or Trash purge is failing, stop the worker, capture the error, and rerun after
    fixing; object deletion is idempotent.
+
+## Backup and recovery
+
+Backup/restore commands, RPO/RTO, access controls, and the regional recovery procedure are in
+[`backup-restore.md`](./backup-restore.md).

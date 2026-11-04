@@ -11,3 +11,5 @@ coverage/
 tmux-client-*.log
 *.log
 .DS_Store
+
+.backups/

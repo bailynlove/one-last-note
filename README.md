@@ -287,6 +287,14 @@ point each at its managed PostgreSQL, Redis, and Cloudflare R2 credentials, and 
 by the deployment runbook. Set `CLAMAV_HOST` on the API and worker; the worker is the production
 scanning path.
 
+## Backup and recovery
+
+`pnpm backup` writes a PostgreSQL custom-format dump plus an R2 object manifest to a dedicated
+backup bucket, retaining 35 daily and 8 weekly recovery points. `pnpm restore` verifies the dump
+checksum, restores into an explicitly confirmed clean target, and compares every table count and
+object size before declaring success. See `docs/operations/backup-restore.md` for the RPO/RTO
+mapping, access controls, quarterly drill, and regional-recovery procedure.
+
 ## CI
 
 `.github/workflows/ci.yml` runs lint, typecheck, unit tests, migrations, storage initialization,
