@@ -22,6 +22,7 @@ import {
   knowledgeBaseMemberships,
   knowledgeBases,
   noteAssociations,
+  noteRelations,
   noteRevisions,
   notes,
   sessions,
@@ -304,6 +305,32 @@ describe('sharing lifecycle', () => {
     const [gone] = await stack.database.db.select().from(notes).where(eq(notes.id, shared.noteId));
     expect(gone).toBeUndefined();
     await expect(stack.storage.getObject(shared.key)).rejects.toThrow();
+  });
+
+  it('deletes manual Relations when an association is purged', async () => {
+    const alpha = await createKnowledgeBase('Relation Purge');
+    const first = await createNote([alpha]);
+    const second = await createNote([alpha]);
+    await stack.database.db.insert(noteRelations).values({
+      knowledgeBaseId: alpha,
+      sourceNoteId: first.noteId,
+      targetNoteId: second.noteId,
+      type: 'references',
+      pairKey: `${first.noteId}:${second.noteId}`,
+      createdByUserId: owner.id,
+    });
+    await app.inject({
+      method: 'DELETE',
+      url: `/knowledge-bases/${alpha}/notes/${second.noteId}/association`,
+      headers: auth(owner.token),
+    });
+    now = new Date(now.getTime() + TRASH_RETENTION_MS + 1);
+    await purge();
+    const rows = await stack.database.db
+      .select()
+      .from(noteRelations)
+      .where(eq(noteRelations.knowledgeBaseId, alpha));
+    expect(rows).toEqual([]);
   });
 
   it('does not delete rows when object storage fails, then retries', async () => {

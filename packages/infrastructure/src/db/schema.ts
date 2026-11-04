@@ -257,6 +257,34 @@ export const noteAssociations = pgTable(
   ],
 );
 
+export const noteRelations = pgTable(
+  'note_relations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    knowledgeBaseId: uuid('knowledge_base_id')
+      .notNull()
+      .references(() => knowledgeBases.id, { onDelete: 'cascade' }),
+    sourceNoteId: uuid('source_note_id')
+      .notNull()
+      .references(() => notes.id, { onDelete: 'cascade' }),
+    targetNoteId: uuid('target_note_id')
+      .notNull()
+      .references(() => notes.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(),
+    pairKey: text('pair_key').notNull(),
+    createdByUserId: uuid('created_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('note_relations_pair_idx').on(table.knowledgeBaseId, table.type, table.pairKey),
+    index('note_relations_kb_idx').on(table.knowledgeBaseId),
+    index('note_relations_source_idx').on(table.sourceNoteId),
+    index('note_relations_target_idx').on(table.targetNoteId),
+  ],
+);
+
 export const captureAttempts = pgTable(
   'capture_attempts',
   {

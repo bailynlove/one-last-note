@@ -27,6 +27,7 @@ export {
 } from './knowledge-base';
 export * from './lifecycle';
 export * from './note';
+export * from './relation';
 export * from './renderer';
 export {
   displayNameFromEmail,

@@ -10,6 +10,7 @@ import type {
   LifecycleService,
   NoteService,
   ReadinessChecker,
+  RelationService,
 } from '@oln/application';
 import {
   AppError,
@@ -26,6 +27,7 @@ import { registerExtensionAuthRoutes } from './extension-auth';
 import { registerKnowledgeBaseRoutes } from './knowledge-bases';
 import { registerLifecycleRoutes } from './lifecycle';
 import { registerNoteRoutes } from './notes';
+import { registerRelationRoutes } from './relations';
 
 export interface BuildApiOptions {
   logger: FastifyBaseLogger;
@@ -33,6 +35,7 @@ export interface BuildApiOptions {
   auth?: AuthService;
   knowledgeBases?: KnowledgeBaseService;
   notes?: NoteService;
+  relations?: RelationService;
   annotations?: AnnotationService;
   lifecycle?: LifecycleService;
   captures?: CaptureService;
@@ -48,6 +51,7 @@ export function buildApi({
   auth,
   knowledgeBases,
   notes,
+  relations,
   annotations,
   lifecycle,
   captures,
@@ -160,6 +164,9 @@ export function buildApi({
   if (auth && notes) {
     app.register(multipart, { limits: { fileSize: MAX_ORIGINAL_BYTES, files: 1 } });
     registerNoteRoutes(app, auth, notes);
+  }
+  if (auth && relations) {
+    registerRelationRoutes(app, auth, relations);
   }
   if (auth && annotations) {
     registerAnnotationRoutes(app, auth, annotations);

@@ -141,6 +141,11 @@ export default async function KnowledgeBasePage({
               </a>
             </li>
             <li>
+              <a className={styles.kbLink} href={`/knowledge-bases/${id}/relations`}>
+                Relations
+              </a>
+            </li>
+            <li>
               <a className={styles.kbLink} href={`/knowledge-bases/${id}#members`}>
                 Members
               </a>
@@ -172,6 +177,11 @@ export default async function KnowledgeBasePage({
         <section className={styles.main}>
           <h1 className={styles.heading}>{knowledgeBase.name}</h1>
           <p className={styles.lede}>{knowledgeBase.description || 'No description yet.'}</p>
+          <p className={styles.pageHeaderActions}>
+            <a className={styles.secondaryButton} href={`/knowledge-bases/${id}/relations`}>
+              Open Relations
+            </a>
+          </p>
 
           {typeof query.error === 'string' ? (
             <p className={`${styles.notice} ${styles.error}`}>{query.error}</p>

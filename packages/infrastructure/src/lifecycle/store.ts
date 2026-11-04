@@ -1,6 +1,6 @@
 import type { LifecycleStore } from '@oln/application';
 import type { DeletedKnowledgeBase, PurgeResult, TrashedAssociation } from '@oln/domain';
-import { and, count, eq, inArray, isNotNull, isNull, lte, notExists, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, isNotNull, isNull, lte, notExists, or, sql } from 'drizzle-orm';
 import type { Database } from '../db/client';
 import {
   annotations,
@@ -11,6 +11,7 @@ import {
   knowledgeBaseMemberships,
   knowledgeBases,
   noteAssociations,
+  noteRelations,
   noteRevisions,
   notes,
 } from '../db/schema';
@@ -399,6 +400,19 @@ export function createLifecycleStore(database: Database): LifecycleStore {
         }
         const associationKbIds = [...new Set(dueAssociations.map((row) => row.knowledgeBaseId))];
         if (associationKbIds.length > 0) {
+          for (const row of dueAssociations) {
+            await tx
+              .delete(noteRelations)
+              .where(
+                and(
+                  eq(noteRelations.knowledgeBaseId, row.knowledgeBaseId),
+                  or(
+                    eq(noteRelations.sourceNoteId, row.noteId),
+                    eq(noteRelations.targetNoteId, row.noteId),
+                  ),
+                ),
+              );
+          }
           await tx
             .delete(annotations)
             .where(

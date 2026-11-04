@@ -104,4 +104,12 @@ export {
   type Probe,
   type ReadinessChecker,
 } from './readiness';
+export {
+  extractContentReferences,
+  type RelationFilter,
+  RelationService,
+  type RelationServiceOptions,
+  type RelationStore,
+  type RevisionSourceReader,
+} from './relations';
 export { renderRevision } from './renderers';

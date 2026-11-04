@@ -40,6 +40,7 @@ export {
 } from './queue/heartbeat';
 export { type CreateRedisOptions, createRedis } from './redis/client';
 export { redisProbe } from './redis/probe';
+export * from './relations';
 export { ObjectStorage, type ObjectStorageOptions } from './storage/client';
 export { objectStorageFromConfig } from './storage/from-config';
 export { storageProbe } from './storage/probe';

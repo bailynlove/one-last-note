@@ -11,6 +11,8 @@ import {
 import { AppError } from './errors';
 import { renderRevision } from './renderers';
 
+const TEXT_MEDIA_TYPES = new Set(['text/html', 'text/markdown', 'text/plain']);
+
 const ARCHIVE_EXTENSIONS = new Set([
   'zip',
   'rar',
@@ -442,6 +444,16 @@ export class NoteService {
       bytes,
     });
     return rendered.text ?? null;
+  }
+
+  async revisionSource(userId: string, noteId: string, revisionId: string): Promise<string | null> {
+    const note = await this.requireNote(userId, noteId);
+    const revision = note.revisions.find((item) => item.id === revisionId);
+    if (revision?.status !== 'ready') return null;
+    if (!TEXT_MEDIA_TYPES.has(revision.mediaType.split(';')[0]?.trim() ?? '')) return null;
+    const stored = await this.options.store.findRevision(revisionId);
+    if (!stored) return null;
+    return new TextDecoder().decode(await this.options.storage.get(stored.storageKey));
   }
 
   async processRevision(revisionId: string): Promise<void> {

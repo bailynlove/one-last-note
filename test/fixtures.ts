@@ -9,6 +9,7 @@ import {
   type LifecycleService,
   type NoteService,
   type ReadinessChecker,
+  type RelationService,
 } from '@oln/application';
 import { loadServerConfig, type ServerConfig } from '@oln/config';
 import {
@@ -90,6 +91,7 @@ export function startTestApi(
     lifecycle?: LifecycleService;
     captures?: CaptureService;
     extensionAuth?: ExtensionAuthService;
+    relations?: RelationService;
     trustProxy?: number;
     authProxySecret?: string;
   } = {},
@@ -104,6 +106,7 @@ export function startTestApi(
     lifecycle: options.lifecycle,
     captures: options.captures,
     extensionAuth: options.extensionAuth,
+    relations: options.relations,
     authProxySecret: options.authProxySecret,
     trustProxy: options.trustProxy,
   });

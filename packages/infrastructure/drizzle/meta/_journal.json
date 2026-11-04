@@ -64,6 +64,13 @@
       "when": 1793791152820,
       "tag": "0008_melted_liz_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793794696289,
+      "tag": "0009_elite_talon",
+      "breakpoints": true
     }
   ]
 }

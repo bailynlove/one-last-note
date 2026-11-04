@@ -705,3 +705,179 @@
   color: var(--muted);
   font-size: 0.9rem;
 }
+
+.relationFilters {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.4fr) repeat(3, minmax(130px, 1fr)) auto auto;
+  gap: 10px;
+  align-items: end;
+  max-width: 1120px;
+  margin: 0 auto 20px;
+  padding: 14px;
+  border: 1px solid var(--line, var(--border));
+  border-radius: 14px;
+  background: var(--surface, #fffdf8);
+}
+
+.relationFilters label,
+.relationForm label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted, #6b6457);
+}
+
+.relationFilters input,
+.relationFilters select,
+.relationForm input,
+.relationForm select {
+  border: 1px solid var(--line, var(--border));
+  border-radius: 8px;
+  background: var(--surface, #fffdf8);
+  color: var(--text, #24211b);
+  padding: 7px 8px;
+  font: inherit;
+}
+
+.relationFilters button,
+.relationForm button {
+  border: 1px solid #2f6f5e;
+  border-radius: 8px;
+  background: #2f6f5e;
+  color: #fff;
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.relationLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+  gap: 18px;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.inspector {
+  border: 1px solid var(--line, var(--border));
+  border-radius: 16px;
+  background: var(--surface, #fffdf8);
+  padding: 16px;
+}
+
+.inspector h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+.inspector h3 {
+  margin: 18px 0 10px;
+  font-size: 13px;
+}
+
+.relationList {
+  list-style: none;
+  margin: 14px 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.relationList li {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line, var(--border)) 65%, transparent);
+  font-size: 13px;
+}
+
+.relationList small {
+  color: var(--muted, #6b6457);
+}
+
+.relationForm {
+  display: grid;
+  gap: 9px;
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line, var(--border));
+}
+
+.panelHint,
+.graphFootnote {
+  color: var(--muted, #6b6457);
+  font-size: 12px;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.pagination a {
+  border: 1px solid var(--line, var(--border));
+  border-radius: 6px;
+  padding: 3px 8px;
+  text-decoration: none;
+}
+
+.pagination a[aria-current="page"] {
+  background: #2f6f5e;
+  border-color: #2f6f5e;
+  color: #fff;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .relationLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .relationFilters {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.pageHeaderActions,
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.relationFilters input[name="q"] {
+  min-width: 190px;
+}
+
+.isolatedNotes {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.isolatedNotes h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.isolatedNotes ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.edgeDim {
+  opacity: 0.18;
+}

@@ -200,6 +200,22 @@ return the original attempt. API routes:
 `POST /knowledge-bases/:id/captures`, `GET /captures/:id`, `POST /captures/:id/retry`, and
 `GET /capture-media/:attemptId/:filename`.
 
+## Note Relations
+
+Owners and Managers can connect Notes inside one Knowledge Base with manual relations: Related to (symmetric), References (directed), and Supersedes (newer to older). Cycles and different labels between the same pair are allowed; self-links and duplicate pairs are rejected. Viewers can explore relations.
+
+Content references are derived from explicit app Note links (`/notes/<id>`) in Markdown and sanitized HTML. They stay attached to the source Revision and resolve only when both Notes belong to the same Knowledge Base. Changing a Revision changes only its content references; manual relations persist.
+
+The Knowledge Base header and Note page link to `/knowledge-bases/[id]/relations`. The Relation page offers a graph with an inspector and an equivalent accessible list, URL-backed filters and selection, isolated Notes, and expandable clusters for large graphs. Filters cover title, relation type, origin, and current/all revisions. Content references are derived on read from the selected Revisions; graphs are capped at 200 Notes and 500 content references. Content-reference derivation is synchronous and will move to a background index when large Knowledge Bases make it the dominant cost.
+
+API:
+
+```text
+GET    /knowledge-bases/:id/relations?revision=current|all|<revisionId>&type=&origin=&q=
+POST   /knowledge-bases/:id/relations
+DELETE /knowledge-bases/:id/relations/:relationId
+```
+
 ## Health and readiness
 
 - `GET /health` on the API and web app is a liveness check.

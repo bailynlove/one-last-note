@@ -227,6 +227,17 @@ export default async function NotePage({
             </p>
           ) : null}
 
+          {contextAssociation ? (
+            <p className={styles.sourceLine}>
+              <a
+                className={styles.textButton}
+                href={`/knowledge-bases/${contextAssociation.knowledgeBaseId}/relations?note=${note.data.id}`}
+              >
+                Relations
+              </a>
+            </p>
+          ) : null}
+
           {typeof query.error === 'string' ? (
             <p className={`${styles.notice} ${styles.error}`}>{query.error}</p>
           ) : null}

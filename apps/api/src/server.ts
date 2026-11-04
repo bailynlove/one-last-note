@@ -7,6 +7,7 @@ import {
   KnowledgeBaseService,
   LifecycleService,
   NoteService,
+  RelationService,
 } from '@oln/application';
 import { loadServerConfig } from '@oln/config';
 import { GOOGLE_CALLBACK_PATH } from '@oln/domain';
@@ -30,6 +31,7 @@ import {
   createNoteRevisionQueue,
   createNoteStore,
   createRedis,
+  createRelationStore,
   createSafeFetcher,
   databaseProbe,
   objectStorageFromConfig,
@@ -121,6 +123,12 @@ const notes = new NoteService({
   logger,
 });
 
+const relations = new RelationService({
+  store: createRelationStore(database),
+  notes,
+  webAppUrl: config.WEB_APP_URL,
+});
+
 const captureQueue = createCaptureQueue(config.REDIS_URL, (error) =>
   logger.warn({ err: error }, 'capture queue connection error'),
 );
@@ -144,6 +152,7 @@ const app = buildApi({
   notes,
   captures,
   extensionAuth,
+  relations,
   annotations: new AnnotationService({
     store: createAnnotationStore(database),
     noteText: (userId, noteId, revisionId) => notes.revisionText(userId, noteId, revisionId),

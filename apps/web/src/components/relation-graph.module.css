@@ -1,0 +1,135 @@
+.graphWrap {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.controls {
+  display: flex;
+  margin: 0;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.controls button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.graph {
+  display: block;
+  width: 100%;
+  min-height: 460px;
+  touch-action: none;
+  cursor: grab;
+  color: var(--muted);
+}
+
+.graph:active {
+  cursor: grabbing;
+}
+
+.edge {
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.contentEdge {
+  stroke-dasharray: 5 5;
+  stroke: var(--accent);
+}
+
+.node {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 1.5;
+  transition: fill 120ms ease;
+}
+
+.nodeLink:hover .node,
+.nodeLink:focus-visible .node {
+  fill: #e4efe2;
+}
+
+.selected {
+  fill: var(--accent);
+  stroke: #214f42;
+  stroke-width: 3;
+}
+
+.cluster {
+  fill: var(--background);
+  stroke-dasharray: 4 3;
+}
+
+.nodeLabel {
+  fill: var(--text);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0;
+  padding: 10px 14px;
+  list-style: none;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.legendLine {
+  display: inline-block;
+  width: 20px;
+  margin-right: 5px;
+  border-top: 2px solid var(--border);
+  vertical-align: middle;
+}
+
+.legendDashed {
+  border-top-style: dashed;
+  border-color: var(--accent);
+}
+
+.edgeRelated {
+  stroke: #3f7d6a;
+}
+
+.edgeReferences {
+  stroke: #6b5aa6;
+}
+
+.edgeSupersedes {
+  stroke: #a05a3c;
+}
+
+.legendLine.edgeRelated {
+  border-color: #3f7d6a;
+}
+
+.legendLine.edgeReferences {
+  border-color: #6b5aa6;
+}
+
+.legendLine.edgeSupersedes {
+  border-color: #a05a3c;
+}
