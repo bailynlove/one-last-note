@@ -2,6 +2,7 @@ name: one-last-note
 
 services:
   postgres:
+    restart: unless-stopped
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: one_last_note
@@ -18,6 +19,7 @@ services:
       retries: 20
 
   redis:
+    restart: unless-stopped
     image: redis:7.4-alpine
     command: ["redis-server", "--save", "", "--appendonly", "no"]
     ports:
@@ -29,6 +31,7 @@ services:
       retries: 20
 
   storage:
+    restart: unless-stopped
     image: adobe/s3mock:5.2.3
     # The named volume is root-owned; local-only mock, never deployed.
     user: "0:0"
@@ -41,6 +44,7 @@ services:
       - storage-data:/data
 
   clamav:
+    restart: unless-stopped
     image: clamav/clamav:1.4
     profiles: ["scanning"]
     ports:
